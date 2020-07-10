@@ -2,6 +2,7 @@
 .stack-work/
 dist/
 dist-newstyle/
+out/
 
 # vis is a better editor anyway
 .idea/
