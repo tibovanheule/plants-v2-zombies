@@ -8,36 +8,32 @@ some = 1 of meer
 many = 0 of meer
 -}
 
--- Get a letter
+-- | parse a letter
 letterParser :: Parser Char
 letterParser =  spot isAlpha
 
--- Get a digit
-digitParser :: Parser Char
-digitParser =   spot isDigit
-
--- Get a symbol
+-- | parse a symbol
 symbolParser :: Parser Char
 symbolParser =   token '!' <|> token '&' <|> token '?'
 
--- Parse one whitespace leave the rest be
+-- | Parse one whitespace skip the rest be
 whiteParser :: Parser Char
 whiteParser = do f <- token ' '
                  many $ token ' ' <|> token '\t'
                  return f
 
-endlineParser :: Parser String
-endlineParser = many $ token '\n' <|> token '\r'
-
+-- | Parse title of level
 titleParser :: Parser String
 titleParser = some $ letterParser <|> digitParser <|> symbolParser <|> whiteParser
 
+-- | Parse difficulty of a level
 difficultyParser :: Parser Float
 difficultyParser = do token '('
                       f <- some $ digitParser <|> token '.'
                       token ')'
                       return (read f:: Float)
 
+-- | skip a comma and whitespace
 kommasep :: Parser a -> Parser a
 kommasep p = do
               many $ token ',' <|> whiteParser
@@ -47,7 +43,6 @@ seedsParser :: Parser [PlantType]
 seedsParser = do f <- seedParser
                  l <- many (kommasep seedParser)
                  return $ f:l
-
 
 seedParser :: Parser PlantType
 seedParser  = do x <- string "Sunflower" <|> string "Peashooter" <|> string "Walnut"
@@ -183,8 +178,7 @@ spawnParser = do many whiteParser
                       "after" -> afterParser
                       "every" -> everySpawnParser
                       "Dog" -> do list <- zombiesParser
-                                  let zombies = createDog:list
-                                  return (Spawn [0] [] zombies)
+                                  return (Spawn [0] [] (createDog:list))
                       "Farmer" -> do list <- zombiesParser
                                      let zombies = createFarmer:list
                                      return (Spawn [0] [] zombies)
@@ -213,5 +207,4 @@ levelParser = do
                 seeds <- seedsParser
                 endlineParser
                 phases <- some phaseParser
-                let level = Level title diff seeds [] [] phases
-                return level
+                return (Level title diff seeds [] [] phases)

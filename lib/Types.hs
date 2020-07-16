@@ -1,3 +1,4 @@
+-- | Types module defines data types of the game, constructors and getters.
 module Types where
 import           Graphics.Gloss                     (Picture)
 
@@ -50,7 +51,7 @@ data Phases = Phases {  start :: Time
                         , spawns :: [Spawn]
 } deriving (Show)
 
-data Spawn = Spawn { when :: [Time]
+data Spawn = Spawn { wanneer :: [Time]
                     ,lanes :: [Lane]
                     ,types :: [Zombie]
 } deriving (Show)
@@ -63,7 +64,7 @@ data Level = Level { levelfile :: String
                    , phase :: [Phases]
 } deriving (Show)
                   
-data Game = Game { time   :: Time
+data World = World { time   :: Time
                    , curlevel :: Maybe Level
                    , state :: State
                    , plevels :: [Level]
@@ -90,11 +91,11 @@ createPea :: Coordinate -> Pea
 createPea c = Pea c 0.5 1
 
 -- creeër een spel
-createGame :: Level -> Game
-createGame l = Game 0 (Just l) Ongoing [] 0
+createGame :: Level -> World
+createGame l = World 0 (Just l) Ongoing [] 0
 
-createPossibleGame :: [Level] -> Game
-createPossibleGame l = Game 0 Nothing Menu l 0
+createPossibleGame :: [Level] -> World
+createPossibleGame l = World 0 Nothing Menu l 0
                    
 ---- GETTERS
 getTimes :: Spawn -> [Time]
@@ -107,12 +108,12 @@ getLane :: Spawn -> [Lane]
 getLane (Spawn _ l _) = l
 
 -- krijg de staat van het spel
-getState :: Game -> State
-getState (Game _ _ s _ _) = s
+getState :: World -> State
+getState (World _ _ s _ _) = s
 
 -- krijg tijd van het spel
-getTime :: Game -> Time
-getTime (Game t _ _ _ _) = t
+getTime :: World -> Time
+getTime (World t _ _ _ _) = t
 
 -- krijg duration van een phase
 getDuration :: Phases -> Time

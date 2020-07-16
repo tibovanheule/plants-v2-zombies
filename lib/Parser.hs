@@ -1,20 +1,18 @@
-module Parser (Parser, token, string, some, many, optional, empty, spot, orParser, geefError, parseStatement, (<|>)) where
-
-import           Control.Applicative (Alternative (..), many, optional, some,
-                                      (<|>))
+-- | This Parser module contains the basic parser functions and the implementation of the Parser.
+module Parser (Parser, token, string, some, many, optional, empty, spot, orParser, geefError, parseStatement, (<|>), parseWhiteSpace, digitParser, endlineParser) where
+import           Control.Applicative (Alternative (..), many, optional, some, (<|>))
 import           Control.Monad       (MonadPlus (..), ap, liftM, guard)
 import           Data.Either         (isLeft, isRight)
 import Types
--- Types
+import Data.Char (isDigit, isAlpha)
 
 newtype Parser a = Parser (String -> [(Either Error a, String)])
 
--- Use the parser to parse a string
+-- | Use the parser to parse a string
 parse :: Parser a -> String -> [(Either Error a, String)]
 parse (Parser p) = p
 
-
--- Parse a string a with a gegeven parser en geef either terug
+-- | Parse a string a with a given parser and give an either back (either error or succes)
 parseStatement :: Parser a -> String -> Either Error a
 parseStatement parser a = case parse parser a of
     -- success, geen rest meer
@@ -28,30 +26,32 @@ parseStatement parser a = case parse parser a of
     -- meerdere mogelijkheden
     (_, _):(_, _):_ -> Left "Ambiguous parse"
 
--- Parse one character
+-- | Parse one character
 char :: Parser Char
 char = Parser f
   where  f [] = []
          f (c:s) = [(Right c,s)]
 
--- Parse a character satisfying a predicate (e.g., isDigit)
+-- | Parse a character satisfying a predicate (e.g., isDigit)
 spot :: (Char -> Bool) -> Parser Char
 spot p = do { c <- char; guard (p c); return c }
 
--- Match a given character
+-- | Parse a character matching a given character
 token :: Char -> Parser Char
 token c = spot (== c)
 
--- Zit er een string in?
+-- | parse a string mathing string argument
 string :: String -> Parser String
 string s = do
     mapM_ token s
     return s
-    
+
+-- | If called, the parser will fail
 geefError :: Error -> Parser a
 geefError msg = Parser (\cs -> [(Left msg, cs)])               
 
--- Vindt de eerste parser die werkt maar, hou een volgorde aan.
+
+-- | Find the first parser that works, the parsers will be tested in the given order.
 orParser :: [Parser a] -> Parser a
 orParser = foldl1 (<|>)
 
@@ -91,3 +91,18 @@ bestCase (firsterror@(Left _, _) : xs) = case bestCase xs of
 instance Alternative Parser where
     p1 <|> p2 = Parser $ \s -> bestCase $ parse (mplus p1 p2) s
     empty = mzero
+
+-- | Parse one whitespace, skip the rest.
+parseWhiteSpace :: Parser Char
+parseWhiteSpace = do
+                 f <- token ' '
+                 many $ token ' ' <|> token '\t'
+                 return f
+
+-- | Parse one digit
+digitParser :: Parser Char
+digitParser = spot isDigit
+
+-- | Parse a new line
+endlineParser :: Parser String
+endlineParser = many $ token '\n' <|> token '\r'

@@ -1,4 +1,5 @@
-module BlaBla where
+-- | Implementation of the game logic.
+module Game where
 import           Types
 import Data.Maybe (isNothing)
 import           System.Environment
@@ -18,13 +19,10 @@ getDefence = parseStatement setupParser
 
 --- GAME LOGIC
 
--- verwijder dode
+-- | filter away dead zombies
 dead :: [Zombie] -> [Zombie]
 dead = filter isAlive
-
--- leeft die nog
-isAlive :: Zombie -> Bool
-isAlive (Zombie _ l _ _ _) = l > 0
+       where isAlive (Zombie _ l _ _ _) = l > 0
 
 moveZombie :: [Plant] -> Zombie -> Zombie
 moveZombie plants z@(Zombie _ _ c@(x,y) _ speed) = z { zombiepos=pos }
@@ -55,8 +53,8 @@ zombiePosCheck :: [Zombie] -> State
 zombiePosCheck zombies | any (\z -> getXZombie z <= 0) zombies = Lost
                        | otherwise = Ongoing
 
-changeWorld :: Time -> Energy -> Level -> Game
-changeWorld time en l@(Level _ _ _ z p phases) = Game (time+0.1) level (whatState (getCurrentPhaseType $ filterPhases time phases) z) [] (en + calcEnergy p)
+changeWorld :: Time -> Energy -> Level -> World
+changeWorld time en l@(Level _ _ _ z p phases) = World (time+0.1) level (whatState (getCurrentPhaseType $ filterPhases time phases) z) [] (en + calcEnergy p)
                                          where zom =  dead $ map (moveZombie p) z ++ spawn time phases
                                                plant = shootPlants p
                                                level = Just (l { zombies=zom, phase= filterPhases time phases, plants=plant})
@@ -125,7 +123,7 @@ getCurrentPhaseSpawns = getSpawnsType . getCurrentPhase
 
 ------- TEST GEDEELTE
 -- run the test
-runTest :: Game -> IO()
+runTest :: World -> IO()
 runTest game = case getState game of
                     Ongoing -> print game >> tick game
                     Menu -> print "ERROR, state corrupted" >> exitWith (ExitFailure 1)
@@ -133,6 +131,6 @@ runTest game = case getState game of
                     Won -> putStr "Victory at " >> print (show (getTime game)) >> exitSuccess
 
 -- Geef een tick aan de wereld, laat runtest weer bepalen wat er dan meot geberuen
-tick :: Game -> IO()
-tick (Game time (Just l)_ _ e) = runTest $ changeWorld time e l
-tick (Game _ Nothing _ _ _) = print "ERROR, no level" >> exitWith (ExitFailure 1)
+tick :: World -> IO()
+tick (World time (Just l)_ _ e) = runTest $ changeWorld time e l
+tick (World _ Nothing _ _ _) = print "ERROR, no level" >> exitWith (ExitFailure 1)
