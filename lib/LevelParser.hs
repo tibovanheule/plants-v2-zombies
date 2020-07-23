@@ -19,7 +19,7 @@ symbolParser =   token '!' <|> token '&' <|> token '?'
 -- | Parse one whitespace skip the rest be
 whiteParser :: Parser Char
 whiteParser = do f <- token ' '
-                 many $ token ' ' <|> token '\t'
+                 many $  token '\t' <|> token ' '
                  return f
 
 -- | Parse title of level
@@ -39,21 +39,25 @@ kommasep p = do
               many $ token ',' <|> whiteParser
               p
 
+-- | parse a list of seeds
 seedsParser :: Parser [PlantType]
 seedsParser = do f <- seedParser
                  l <- many (kommasep seedParser)
                  return $ f:l
 
+-- | parse one seed
 seedParser :: Parser PlantType
 seedParser  = do x <- string "Sunflower" <|> string "Peashooter" <|> string "Walnut"
                  return (read x ::PlantType)
 
+-- | Parse timestamp and return total of seconds.
 timeParser :: Parser Time
 timeParser = do minutes <- some digitParser
                 token ':'
                 seconds <- some digitParser
                 return (((read minutes::Float) *60) + read seconds::Float)
 
+-- | Parse a Phase
 zombiePhaseParser :: Parser PhaseType
 zombiePhaseParser = do optional whiteParser
                        token '-'

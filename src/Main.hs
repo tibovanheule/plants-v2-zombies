@@ -12,7 +12,7 @@ import Control.Monad
 import System.FilePath
 import Graphical
 
---Ongeldige bestanden mag je in deze modus gewoon negeren.
+-- Ongeldige bestanden mag je in deze modus gewoon negeren.
 main :: IO ()
 main = do
           args <- getArgs
@@ -33,8 +33,7 @@ main = do
           case parsedFiles of
                  [] -> die "No readably files"
                  _ ->  when debug (print "Levels loaded")
-          let game = createPossibleGame (rights parsedFiles)
-          graphic game
+          graphic $ createPossibleGame (rights parsedFiles)
 
 -- | Get all FilePaths of the files in a directory.
 getDirFilesPaths :: FilePath -> IO [FilePath]

@@ -43,18 +43,18 @@ isHit (x,_) (x',_) = x >= x'
 damage :: Life -> Damage -> Life
 damage = (-)
 
--- geeft de staat van spel terug
-whatState :: PhaseType -> [Zombie] -> State
-whatState EndPhase [] = Won
-whatState EndPhase [a] = Lost
-whatState _ z = zombiePosCheck z
+-- | geeft de staat van spel terug
+isWon :: PhaseType -> [Zombie] -> State
+isWon EndPhase [] = Won
+isWon EndPhase [a] = Lost
+isWon _ z = zombiePosCheck z
 
 zombiePosCheck :: [Zombie] -> State
 zombiePosCheck zombies | any (\z -> getXZombie z <= 0) zombies = Lost
                        | otherwise = Ongoing
 
 changeWorld :: Time -> Energy -> Level -> World
-changeWorld time en l@(Level _ _ _ z p phases) = World (time+0.1) level (whatState (getCurrentPhaseType $ filterPhases time phases) z) [] (en + calcEnergy p)
+changeWorld time en l@(Level _ _ _ z p phases) = World (time+0.1) level (isWon (getCurrentPhaseType $ filterPhases time phases) z) [] (en + calcEnergy p)
                                          where zom =  dead $ map (moveZombie p) z ++ spawn time phases
                                                plant = shootPlants p
                                                level = Just (l { zombies=zom, phase= filterPhases time phases, plants=plant})
@@ -133,4 +133,4 @@ runTest game = case getState game of
 -- Geef een tick aan de wereld, laat runtest weer bepalen wat er dan meot geberuen
 tick :: World -> IO()
 tick (World time (Just l)_ _ e) = runTest $ changeWorld time e l
-tick (World _ Nothing _ _ _) = print "ERROR, no level" >> exitWith (ExitFailure 1)
+tick (World _ Nothing _ _ _) = die "ERROR, no level"
