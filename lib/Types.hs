@@ -67,10 +67,10 @@ data Level = Level { title :: String
 } deriving (Show)
                   
 data World = World { time   :: Time
-                   , curlevel :: Maybe Level
+                   , chosenLevel :: Maybe Level
                    , state :: State
                    , plevels :: [Level]
-                   , engery :: Energy
+                   , energy :: Energy
                    , currlevel :: CurrLevel
                    } deriving (Show)
 

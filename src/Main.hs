@@ -16,7 +16,10 @@ import Graphical
 main :: IO ()
 main = do
           args <- getArgs
+          --- THESE ARE DEBUGIING OPTIONS FOR more info when running the program
           let debug = "debug" `elem` args
+              time = "time" `elem` args
+              events = "events" `elem` args
           -- Haal programma argumenten op.
           fp <- head <$> getArgs
           -- Bestaat de directory.
@@ -33,7 +36,7 @@ main = do
           case parsedFiles of
                  [] -> die "No readably files"
                  _ ->  when debug (print "Levels loaded")
-          graphic $ createPossibleGame (rights parsedFiles)
+          graphic time events $ createPossibleGame (rights parsedFiles)
 
 -- | Get all FilePaths of the files in a directory.
 getDirFilesPaths :: FilePath -> IO [FilePath]
