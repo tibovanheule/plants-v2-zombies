@@ -20,8 +20,8 @@ schaal = 50
 breedte = 9
 hoogte = 7
 
-extentR, extentA, extentB, extentC :: Extent
-extentR = makeExtent   90    60  65 (-65)
+extentQuit, extentA, extentB, extentC :: Extent
+extentQuit = makeExtent   90    60  65 (-65)
 extentA = makeExtent   40    10  65 (-65)
 extentB = makeExtent (-10) (-40) 65 (-65)
 extentC = makeExtent (-60) (-90) 65 (-65)
@@ -40,32 +40,62 @@ window = InWindow "Vanheule Tibo, 001700370" (round $ breedte * schaal, round $ 
 graphic :: World -> IO()
 graphic start = playBanana window white 60 reactiveMain
     where reactiveMain :: Event Float -> Event InputEvent -> MomentIO (Behavior Picture)
-          reactiveMain floats events = do --let moveE = filterE isValidKeypress inputEvent
-                                              --startE = filterE isStart inputEvent
-                                          --gameState <- accumB (start) $ unions [ slideBoardHandler <$> moveE
-                                            --          , startGameHandler <$ startE ]
-                                              --return $ renderApp <$> gameState
-                                          return $ pure $ pictures  (map button buttons)
+          reactiveMain floats inputEvents = do  timeprint <- accumE 0 (fmap (+) floats)
+                                                reactimate $ print <$> timeprint
+                                                reactimate $ print <$> inputEvents
+                                                reactimate $ specialProgramKeys <$> inputEvents
+                                                let mouseEvents = filterE isClick inputEvents
+                                                --startE = filterE isStart inputEvent
 
-isValidKeypress :: InputEvent -> Bool
---isValidKeypress (ek k Down _ _) = elem (ek,k) [ (SpecialKey KeyUp) ]
-isValidKeypress _                     = False
+                                                gameState <- accumB (start) $ unions [ menuMouse <$> mouseEvents ]
+                                                  --          , startGameHandler <$ startE ]
+                                                    --return $ renderApp <$> gameState
+                                                return $ gui <$> gameState
+
+-- | returns appropriate io action when specific events occur, quit on escape keypress
+specialProgramKeys :: InputEvent -> IO ()
+specialProgramKeys (EventKey (SpecialKey KeyEsc) Down _ _) = print "exiting, bye" >> exitSuccess
+specialProgramKeys (EventKey (MouseButton LeftButton) Down _ p) = validate $ pointInExtent extentQuit p
+specialProgramKeys _ = return ()
+
+validate :: Bool -> IO ()
+validate True = print "exiting, bye" >> exitSuccess
+validate _    = return ()
+
+-- | isClick is a filter for the event stream, it only keeps the mouseclicks (left) and no mouse moves
+isClick :: InputEvent -> Bool
+isClick (EventKey (MouseButton LeftButton) _ _ _) = True
+isClick _ = False
+
+menuMouse :: InputEvent -> World -> World
+menuMouse (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Menu levels _ curr) = nextLevel $ pointInExtent extentB p
+menuMouse _                                            g@(World _ _ _ levels _ curr)    = g
+            where nextLevel True = g {currlevel = (next ((curr+1) < length levels))}
+                  nextLevel _ = g
+                  next True = curr + 1
+                  next _ = 0
+
+-- | Decides what will be drawn, a menu or the game itself. and always draw exit button
+gui :: World -> Picture
+gui g@(World _ Nothing Menu _ _ _) = drawMenu g <> clickable extentQuit "exit"
+gui g = drawGame g <> clickable extentQuit "exit"
+
+drawMenu :: World -> Picture
+drawMenu (World _ Nothing Menu levels _ currentlevel) = clickable extentA stringLevel <> clickable extentB "Next level"
+          where stringLevel = levelToString $ levels !! currentlevel
+                levelToString (Level title difficulty _ _ _ phase) = title ++ " diffculty: " ++ (show difficulty) ++ " time: " ++ (show $ getEnd phase)
 
 
+drawGame :: World -> Picture
+drawGame g = text $ show g
 
-
-button :: Extent -> Picture
-button ex  = color azure bg <> color white fg
+clickable :: Extent -> String -> Picture
+clickable ex string = color azure bg <> color black fg
   where
     bg = polygon (cornerPoints ex)
-    fg = translate x y
-       $ uscale 0.1
-       $ translate (-150) (-50)  -- vertically centered, random x offset :(
-       $ text "test"
+    fg = translate x y $ uscale 0.1 $ translate (-150) (-50) $ text string
     (x, y) = c2p (centerCoordOfExtent ex)
 
-buttons :: [Extent]
-buttons = [extentA, extentB, extentC]
 
 coorsToGloss ::  Coordinate -> Picture -> Picture
 coorsToGloss c@(x, y) = translate (convert breedte x) (negate $ convert hoogte (fromIntegral y))
@@ -84,10 +114,8 @@ uscale v = scale v v
 c2p :: Coord -> Point
 c2p (x,y) = (fromIntegral x, fromIntegral y)
 
-cornerCoords :: Extent -> [Coord]
-cornerCoords ex = [(w,n), (e,n), (e,s), (w,s)]
-  where
-    (n, s, e, w) = takeExtent ex
 
+-- | take the coordinates of the corners of the extent and convert them to points
 cornerPoints :: Extent -> [Point]
-cornerPoints = map c2p . cornerCoords
+cornerPoints ex = map c2p $ [(w,n), (e,n), (e,s), (w,s)]
+      where (n, s, e, w) = takeExtent ex

@@ -1,7 +1,8 @@
 -- | Types module defines data types of the game, constructors and getters.
 module Types where
-import           Graphics.Gloss                     (Picture)
+import Graphics.Gloss (Picture)
 
+-- | All type synonyms
 type Coordinate = (Float, Int)
 type Life = Int
 type Damage = Int
@@ -10,6 +11,7 @@ type Speed = Float
 type Time = Float
 type Error = String
 type Energy = Int
+type CurrLevel = Int
 
 
 data Images =  Images
@@ -56,7 +58,7 @@ data Spawn = Spawn { wanneer :: [Time]
                     ,types :: [Zombie]
 } deriving (Show)
                   
-data Level = Level { levelfile :: String
+data Level = Level { title :: String
                    , difficulty :: Float
                    , seeds :: [PlantType]
                    , zombies :: [Zombie]
@@ -69,8 +71,13 @@ data World = World { time   :: Time
                    , state :: State
                    , plevels :: [Level]
                    , engery :: Energy
+                   , currlevel :: CurrLevel
                    } deriving (Show)
-                   
+
+
+
+
+
 ----- Constructors
 createDog :: Zombie                   
 createDog = Zombie Dog 2 (9,0) 3 0.1
@@ -90,12 +97,13 @@ createPeaShooter = Plant Peashooter 1 (0,0) 0.0 []
 createPea :: Coordinate -> Pea
 createPea c = Pea c 0.5 1
 
--- creeër een spel
+-- | creeër een spel with one level (selected level is that given level and is a Just)
 createGame :: Level -> World
-createGame l = World 0 (Just l) Ongoing [] 0
+createGame l = World 0 (Just l) Ongoing [] 0 0
 
+-- | create a game with multiple levels, selected level is a Nothing
 createPossibleGame :: [Level] -> World
-createPossibleGame l = World 0 Nothing Menu l 0
+createPossibleGame l = World 0 Nothing Menu l 0 0
                    
 ---- GETTERS
 getTimes :: Spawn -> [Time]
@@ -109,11 +117,11 @@ getLane (Spawn _ l _) = l
 
 -- krijg de staat van het spel
 getState :: World -> State
-getState (World _ _ s _ _) = s
+getState (World _ _ s _ _ _) = s
 
 -- krijg tijd van het spel
 getTime :: World -> Time
-getTime (World t _ _ _ _) = t
+getTime (World t _ _ _ _ _) = t
 
 -- krijg duration van een phase
 getDuration :: Phases -> Time
@@ -130,3 +138,6 @@ getPhaseType (Phases _ t _) = t
 -- krijg de spawns van een phase
 getSpawnsType :: Phases-> [Spawn]
 getSpawnsType (Phases _ _ s) = s
+
+getEnd :: [Phases] -> (Int,Int)
+getEnd p = (1,1)

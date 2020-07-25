@@ -11,9 +11,11 @@ import System.IO
 import Data.Either (rights)
 
 -- Parser Calls
+-- | Call parser en parse level file contents using levelparser
 getLevel :: String -> Either Error Level
 getLevel =  parseStatement levelParser
 
+-- | Call parser en parse defence file contents using setupparser
 getDefence :: String -> Either Error [Plant]
 getDefence = parseStatement setupParser
 
@@ -24,6 +26,7 @@ dead :: [Zombie] -> [Zombie]
 dead = filter isAlive
        where isAlive (Zombie _ l _ _ _) = l > 0
 
+-- | move a zombie using his speed, only if possible.
 moveZombie :: [Plant] -> Zombie -> Zombie
 moveZombie plants z@(Zombie _ _ c@(x,y) _ speed) = z { zombiepos=pos }
                where pos = case zombieBeforePlant plants (x-speed,y) of
@@ -40,6 +43,7 @@ movePea p@(x,y) speed = p
 isHit :: Coordinate -> Coordinate -> Bool
 isHit (x,_) (x',_) = x >= x'
 
+-- | Reduce a Life with damage x
 damage :: Life -> Damage -> Life
 damage = (-)
 
@@ -54,7 +58,7 @@ zombiePosCheck zombies | any (\z -> getXZombie z <= 0) zombies = Lost
                        | otherwise = Ongoing
 
 changeWorld :: Time -> Energy -> Level -> World
-changeWorld time en l@(Level _ _ _ z p phases) = World (time+0.1) level (isWon (getCurrentPhaseType $ filterPhases time phases) z) [] (en + calcEnergy p)
+changeWorld time en l@(Level _ _ _ z p phases) = World (time+0.1) level (isWon (getCurrentPhaseType $ filterPhases time phases) z) [] (en + calcEnergy p) 0
                                          where zom =  dead $ map (moveZombie p) z ++ spawn time phases
                                                plant = shootPlants p
                                                level = Just (l { zombies=zom, phase= filterPhases time phases, plants=plant})
@@ -121,16 +125,8 @@ getCurrentPhaseType = getPhaseType . getCurrentPhase
 getCurrentPhaseSpawns :: [Phases] -> [Spawn]
 getCurrentPhaseSpawns = getSpawnsType . getCurrentPhase
 
-------- TEST GEDEELTE
--- run the test
-runTest :: World -> IO()
-runTest game = case getState game of
-                    Ongoing -> print game >> tick game
-                    Menu -> print "ERROR, state corrupted" >> exitWith (ExitFailure 1)
-                    Lost -> putStr "Loss after " >> putStr ( show (getTime game)) >> putStr " seconds" >> exitSuccess
-                    Won -> putStr "Victory at " >> print (show (getTime game)) >> exitSuccess
 
--- Geef een tick aan de wereld, laat runtest weer bepalen wat er dan meot geberuen
-tick :: World -> IO()
-tick (World time (Just l)_ _ e) = runTest $ changeWorld time e l
-tick (World _ Nothing _ _ _) = die "ERROR, no level"
+
+
+
+

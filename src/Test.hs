@@ -27,3 +27,17 @@ main = do args <- getArgs
           let leveldef = (head $ rights [level]) {plants=head $ rights [defence]}
           let game = createGame leveldef
           runTest game
+
+-- persoonlijk vind ik deze code te kort voor in een aparte module te steken
+-- | run a game in Test modus, simulates time ticks
+runTest :: World -> IO()
+runTest game = case getState game of
+                    Ongoing -> print game >> tick game
+                    Menu -> die "ERROR, state corrupted"
+                    Lost -> putStr "Loss after " >> putStr ( show (getTime game)) >> putStr " seconds" >> exitSuccess
+                    Won -> putStr "Victory at " >> putStr (show (getTime game)) >> exitSuccess
+
+-- | Geef een tick aan de wereld, laat runtest weer bepalen wat er dan meot geberuen
+tick :: World -> IO()
+tick (World time (Just l) _ _ e _) = print time >> (runTest $ changeWorld time e l)
+tick (World _ Nothing _ _ _ _) = die "ERROR, no level"
