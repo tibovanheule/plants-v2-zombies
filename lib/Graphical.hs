@@ -119,9 +119,9 @@ drawMenu (World _ _ _ levels _ currentlevel) =
    translate (-200) 140 (uscale 0.1 (text ("time: " ++ (show $ getEnd phase)) ))
 
 drawGame :: World -> Picture
-drawGame g@(World time (Just l) Ongoing _ e _) = (translate (-200) (-400) (uscale 0.1 (text $ show g))) <> (pictures $ map (\x -> coorsToGloss x vakje ) (concatMap (\y -> zip (replicate 9 y) [0..5]) [0..8]) ) <> drawProgressBar 10 200
-drawGame (World _ _ Won _ _ _) = uscale 0.5 (text $ "Won")
-drawGame (World _ _ Lost _ _ _) = uscale 0.5 (text $ "Lost")
+drawGame g@(World time (Just l) Ongoing _ e _) = (translate (-200) (-400) (uscale 0.1 (text $ show g))) <> (pictures $ map (\x -> coorsToGloss x vakje ) (concatMap (\y -> zip (replicate 9 y) [0..5]) [0..8]) ) <> drawProgressBar time 600
+drawGame (World _ _ Won _ _ _) = uscale 0.5 (text $ "Good job! You won")
+drawGame (World _ _ Lost _ _ _) = uscale 0.5 (text $ "Try again, you Lost")
 
 drawProgressBar :: Time -> Time -> Picture
 drawProgressBar t  tmax = translate 000 (-300)  ( color blue (rectangleSolid tmax 20) <> color yellow ( rectangleSolid t 20) )
