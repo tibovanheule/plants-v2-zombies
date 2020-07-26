@@ -119,7 +119,12 @@ drawMenu (World _ _ _ levels _ currentlevel) =
    translate (-200) 140 (uscale 0.1 (text ("time: " ++ (show $ getEnd phase)) ))
 
 drawGame :: World -> Picture
-drawGame g = pictures $ map (\x -> coorsToGloss x vakje ) (concatMap (\y -> zip (replicate 9 y) [0..5]) [0..8])
+drawGame g@(World time (Just l) Ongoing _ e _) = (translate (-200) (-400) (uscale 0.1 (text $ show g))) <> (pictures $ map (\x -> coorsToGloss x vakje ) (concatMap (\y -> zip (replicate 9 y) [0..5]) [0..8]) ) <> drawProgressBar 10 200
+drawGame (World _ _ Won _ _ _) = uscale 0.5 (text $ "Won")
+drawGame (World _ _ Lost _ _ _) = uscale 0.5 (text $ "Lost")
+
+drawProgressBar :: Time -> Time -> Picture
+drawProgressBar t  tmax = translate 000 (-300)  ( color blue (rectangleSolid tmax 20) <> color yellow ( rectangleSolid t 20) )
 
 clickable :: Extent -> String -> Picture
 clickable ex string = color azure bg <> color black fg
@@ -149,5 +154,5 @@ cornerPoints ex = map c2p $ [(w, n), (e, n), (e, s), (w, s)]
 
 -- | Give the world a time tick
 tick :: Float -> World -> World
-tick _ g@(World time (Just l) _ _ e _) = changeWorld time e l
-tick _ g@(World _ Nothing _ _ _ _) = g
+tick _ g@(World time (Just l) Ongoing _ e _) = changeWorld time e l
+tick _ g = g

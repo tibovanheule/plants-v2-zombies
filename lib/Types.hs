@@ -123,17 +123,9 @@ getState (World _ _ s _ _ _) = s
 getTime :: World -> Time
 getTime (World t _ _ _ _ _) = t
 
--- krijg duration van een phase
-getDuration :: Phases -> Time
-getDuration  (Phases t _ _) = t
-
 -- krijg x-coordinaat van zombie
 getXZombie :: Zombie -> Float
 getXZombie (Zombie _ _ (x,_) _ _) = x
-
--- krijg de type van een phase
-getPhaseType :: Phases-> PhaseType
-getPhaseType (Phases _ t _) = t
 
 -- krijg de spawns van een phase
 getSpawnsType :: Phases-> [Spawn]

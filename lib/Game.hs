@@ -43,17 +43,19 @@ damage :: Life -> Damage -> Life
 damage = (-)
 
 -- | geeft de staat van spel terug
-isWon :: PhaseType -> [Zombie] -> State
-isWon EndPhase [] = Won
-isWon EndPhase [a] = Lost
-isWon _ z = zombiePosCheck z
+isWon :: Time -> Phases -> [Zombie] -> State
+isWon t p@(Phases dur EndPhase _) [] | t >= (dur * 60) = Won
+                                     | otherwise = Ongoing
+isWon t p@(Phases dur EndPhase _) (_:_) | t >= (dur * 60) = Lost
+                                        | otherwise = Ongoing
+isWon _ _ z = zombiePosCheck z
 
 zombiePosCheck :: [Zombie] -> State
 zombiePosCheck zombies | any (\z -> getXZombie z <= 0) zombies = Lost
                        | otherwise = Ongoing
 
 changeWorld :: Time -> Energy -> Level -> World
-changeWorld time en l@(Level _ _ _ z p phases) = World (time+1) level (isWon (getCurrentPhaseType $ filterPhases time phases) z) [] (calcEnergy en p) 0
+changeWorld time en l@(Level _ _ _ z p phases) = World (time+1) level (isWon time (head $ filterPhases time phases) z) [] (calcEnergy en p) 0
                                          where zom =  dead $ map (moveZombie p) z ++ spawn time phases
                                                plant = shootPlants p
                                                level = Just (l { zombies=zom, phase= filterPhases time phases, plants=plant})
@@ -109,12 +111,11 @@ updateLane zombies l = map (\z -> z {zombiepos=(getXZombie z,l)} ) zombies
 
 -- | use Time to filter Phases that ended
 filterPhases :: Time -> [Phases] -> [Phases]
-filterPhases t p = filter (\x -> getDuration x < t) p
-
-getCurrentPhaseType :: [Phases] -> PhaseType
-getCurrentPhaseType [] = EndPhase
-getCurrentPhaseType [h] = getPhaseType h
+filterPhases t p = filter del p
+ where
+  del (Phases _ EndPhase _) = True
+  del (Phases dur _ _) = (dur * 60) > t
 
 getCurrentPhaseSpawns :: [Phases] -> [Spawn]
 getCurrentPhaseSpawns [] = []
-getCurrentPhaseSpawns [h] = getSpawnsType h
+getCurrentPhaseSpawns (h:_) = getSpawnsType h
