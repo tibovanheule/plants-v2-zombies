@@ -89,10 +89,10 @@ createCitizen :: Zombie
 createCitizen = Zombie Citizen 3 (9,0) 2 (1/30)
 
 createSunflower :: Plant
-createSunflower = Plant Sunflower 1 (0,0) 0.0 []
+createSunflower = Plant Sunflower 1 (0,0) 0 []
 
 createPeaShooter :: Plant
-createPeaShooter = Plant Peashooter 1 (0,0) 0.0 []
+createPeaShooter = Plant Peashooter 1 (0,0) 0 []
 
 createPea :: Coordinate -> Pea
 createPea c = Pea c 0.5 1

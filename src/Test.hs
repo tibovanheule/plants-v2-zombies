@@ -37,7 +37,7 @@ runTest game = case getState game of
                     Lost -> putStr "Loss after " >> putStr ( show (getTime game)) >> putStr " seconds" >> exitSuccess
                     Won -> putStr "Victory at " >> putStr (show (getTime game)) >> exitSuccess
 
--- | Geef een tick aan de wereld, laat runtest weer bepalen wat er dan meot geberuen
+-- | Give the world a time tick, then let runtest decide if a tick is again needed
 tick :: World -> IO()
 tick (World time (Just l) _ _ e _) = print time >> (runTest $ changeWorld time e l)
 tick (World _ Nothing _ _ _ _) = die "ERROR, no level"

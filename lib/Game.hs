@@ -1,14 +1,9 @@
 -- | Implementation of the game logic.
 module Game where
 import           Types
-import Data.Maybe (isNothing)
-import           System.Environment
-import           System.Exit
 import           LevelParser
 import           Parser
 import SetupParser
-import System.IO
-import Data.Either (rights)
 
 -- Parser Calls
 -- | Call parser en parse level file contents using levelparser
@@ -58,34 +53,33 @@ zombiePosCheck zombies | any (\z -> getXZombie z <= 0) zombies = Lost
                        | otherwise = Ongoing
 
 changeWorld :: Time -> Energy -> Level -> World
-changeWorld time en l@(Level _ _ _ z p phases) = World (time+0.1) level (isWon (getCurrentPhaseType $ filterPhases time phases) z) [] (en + calcEnergy p) 0
+changeWorld time en l@(Level _ _ _ z p phases) = World (time+1) level (isWon (getCurrentPhaseType $ filterPhases time phases) z) [] (calcEnergy en p) 0
                                          where zom =  dead $ map (moveZombie p) z ++ spawn time phases
                                                plant = shootPlants p
                                                level = Just (l { zombies=zom, phase= filterPhases time phases, plants=plant})
 
-calcEnergy :: [Plant] -> Energy
-calcEnergy = sum . map checkSunflower
+-- | calculates total amount of energy, uses checkSunflower function ()
+calcEnergy :: Energy -> [Plant] -> Energy
+calcEnergy en p = en + (sum $ map checkSunflower p)
 
+-- TODO FIX conflict met schoot !
+-- | check if 3 seconds has passed, and add energy if needed
 checkSunflower :: Plant -> Energy
-checkSunflower (Plant Sunflower _ _ t _) = case t >= 3 of
-                                                True -> 1
-                                                _ -> 0
-checkSunflower (Plant _ _ _ t _) = 0
+checkSunflower (Plant Sunflower _ _ lastshot _) | lastshot >= 180 = 1
+                                                | otherwise = 0
+checkSunflower _ = 0
 
 shootPlants :: [Plant] -> [Plant]
 shootPlants = map shoot
 
 shoot :: Plant -> Plant
-shoot p@(Plant typ _ _ t _) = case typ of
-                                 Sunflower -> case t >= 3 of 
-                                                   True -> p {lastshot=0} 
-                                                   False -> p {lastshot=lastshot(p)+0.1}
-                                 Peashooter -> case t >= 2 of 
-                                                    True -> p {lastshot=0,shots=createPea (plantpos(p)):shots(p)} 
-                                                    False -> p {lastshot=lastshot(p)+0.1}
-                                 _ -> p
+shoot p@(Plant Sunflower _ _ t _) | t >= 180 = p {lastshot=0}
+                                         | otherwise = p {lastshot=lastshot(p)+1}
+shoot p@(Plant Peashooter _ _ t _) | t >= 120 = p {lastshot=0,shots=createPea (plantpos(p)):shots(p)}
+                                          | otherwise =  p {lastshot=lastshot(p)+1}
+schoot p = p
                                  
--- zal de uit de phase de spans halen en een lijst van zombies maken als dit nodig blijkt
+-- | Get all spawns of zombies out of a phase
 spawn :: Time -> [Phases] -> [Zombie]
 spawn t = checkSpawns t . getCurrentPhaseSpawns
 
@@ -94,14 +88,17 @@ checkSpawns :: Time -> [Spawn] -> [Zombie]
 checkSpawns t = concatMap (createZombies t)
 
 --is een spawn nodig?
-needed :: Time -> [Time] -> Bool
-needed ti = any (ti ==)
 
+--TODO Dit klopt niet ????
 -- een lijst van zombies maken als dit nodig blijkt
 createZombies :: Time -> Spawn -> [Zombie]
-createZombies t s@(Spawn r l z)  = case needed t r of
-                                        False -> []
-                                        True -> laneZombie z l
+createZombies t s@(Spawn r l z) | needed t r = laneZombie z l
+                                | otherwise = []
+ where
+  needed :: Time -> [Time] -> Bool
+  needed ti = any (ti ==)
+
+
 -- zet zombie op elke lane
 laneZombie :: [Zombie] -> [Lane] -> [Zombie]
 laneZombie z = concatMap (updateLane z) 
@@ -110,23 +107,14 @@ laneZombie z = concatMap (updateLane z)
 updateLane :: [Zombie] -> Lane  -> [Zombie]
 updateLane zombies l = map (\z -> z {zombiepos=(getXZombie z,l)} ) zombies
 
--- haalt verlopen phases weg
+-- | use Time to filter Phases that ended
 filterPhases :: Time -> [Phases] -> [Phases]
-filterPhases t p = case getDuration (p!!1) < t of
-                        True -> drop 1 p
-                        _ -> p
-
-getCurrentPhase :: [Phases] -> Phases
-getCurrentPhase = head
+filterPhases t p = filter (\x -> getDuration x < t) p
 
 getCurrentPhaseType :: [Phases] -> PhaseType
-getCurrentPhaseType = getPhaseType . getCurrentPhase
+getCurrentPhaseType [] = EndPhase
+getCurrentPhaseType [h] = getPhaseType h
 
 getCurrentPhaseSpawns :: [Phases] -> [Spawn]
-getCurrentPhaseSpawns = getSpawnsType . getCurrentPhase
-
-
-
-
-
-
+getCurrentPhaseSpawns [] = []
+getCurrentPhaseSpawns [h] = getSpawnsType h

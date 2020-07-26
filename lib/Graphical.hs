@@ -34,8 +34,10 @@ schaal = 70
 breedte = 9
 hoogte = 7
 
+-- | basic globally used extents, these are for
 extentQuit, extentNext, extentStart :: Extent
-extentQuit = makeExtent 90 60 65 (-65)
+-- North, South, East, West
+extentQuit = makeExtent (-210) (-240) 300 170
 extentNext = makeExtent (-10) (-40) 65 (-65)
 extentStart = makeExtent (-60) (-90) 65 (-65)
 
@@ -63,11 +65,9 @@ graphic debugtime debugevents start = playBanana window white 60 reactiveMain
     when debugevents (reactimate $ print <$> inputEvents)
     -- On escape => quit
     reactimate $ specialProgramKeys <$> inputEvents
-    -- Don't want all events, only relevant to the program
+    -- Don't want all mouse/keypress events, only relevant to the program (filter the event stream)
     let mouseEvents = filterE isClick inputEvents
-    --startE = filterE isStart inputEvent
-    gameState <- accumB (start) $ unions [mouse <$> mouseEvents]
-      --          , startGameHandler <$ startE ]
+    gameState <- accumB (start) $ unions [mouse <$> mouseEvents, tick <$> floats]
     return $ gui <$> gameState
 
 -- | returns appropriate io action when specific events occur, quit on escape keypress
@@ -111,15 +111,12 @@ gui g                              = drawGame g <> clickable extentQuit "exit"
 -- | Draws the menu
 drawMenu :: World -> Picture
 drawMenu (World _ _ _ levels _ currentlevel) =
- (uscale 0.1 $ text stringLevel) <> clickable extentNext "Next level (N)"  <> clickable extentStart "Start level (S)"
+ levelToPic <> clickable extentNext "Next level (N)"  <> clickable extentStart "Start level (S)"
  where
-  stringLevel = levelToString $ levels !! currentlevel
-  levelToString (Level title difficulty _ _ _ phase) =
-    title
-      ++ " diffculty: "
-      ++ (show difficulty)
-      ++ " time: "
-      ++ (show $ getEnd phase)
+  levelToPic = levelToPictures $ levels !! currentlevel
+  levelToPictures (Level title difficulty _ _ _ phase) = translate (-200) 200 (uscale 0.1 (text title)) <>
+   translate (-200) 170 (uscale 0.1 (text ("diffculty: " ++ (show difficulty)) )) <>
+   translate (-200) 140 (uscale 0.1 (text ("time: " ++ (show $ getEnd phase)) ))
 
 drawGame :: World -> Picture
 drawGame g = pictures $ map (\x -> coorsToGloss x vakje ) (concatMap (\y -> zip (replicate 9 y) [0..5]) [0..8])
@@ -149,3 +146,8 @@ c2p (x, y) = (fromIntegral x, fromIntegral y)
 cornerPoints :: Extent -> [Point]
 cornerPoints ex = map c2p $ [(w, n), (e, n), (e, s), (w, s)]
   where (n, s, e, w) = takeExtent ex
+
+-- | Give the world a time tick
+tick :: Float -> World -> World
+tick _ g@(World time (Just l) _ _ e _) = changeWorld time e l
+tick _ g@(World _ Nothing _ _ _ _) = g
