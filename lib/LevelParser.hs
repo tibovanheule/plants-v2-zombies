@@ -10,11 +10,11 @@ many = 0 of meer
 
 -- | parse a letter
 letterParser :: Parser Char
-letterParser =  spot isAlpha
+letterParser = spot isAlpha
 
 -- | parse a symbol
 symbolParser :: Parser Char
-symbolParser =   token '!' <|> token '&' <|> token '?'
+symbolParser = token '!' <|> token '&' <|> token '?'
 
 -- | Parse one whitespace skip the rest be
 whiteParser :: Parser Char
@@ -35,9 +35,7 @@ difficultyParser = do token '('
 
 -- | skip a comma and whitespace
 kommasep :: Parser a -> Parser a
-kommasep p = do
-              many $ token ',' <|> whiteParser
-              p
+kommasep p = (many $ token ',' <|> whiteParser) >> p
 
 -- | parse a list of seeds
 seedsParser :: Parser [PlantType]
@@ -47,8 +45,7 @@ seedsParser = do f <- seedParser
 
 -- | parse one seed
 seedParser :: Parser PlantType
-seedParser  = do x <- string "Sunflower" <|> string "Peashooter" <|> string "Walnut"
-                 return (read x ::PlantType)
+seedParser  = (string "Sunflower" <|> string "Peashooter" <|> string "Walnut") >>= \x -> return (read x ::PlantType)
 
 -- | Parse timestamp and return total of seconds.
 timeParser :: Parser Time
@@ -59,13 +56,11 @@ timeParser = do minutes <- some digitParser
 
 -- | Parse a Zombie Phase
 zombiePhaseParser :: Parser PhaseType
-zombiePhaseParser = do string "Zombie Phase"
-                       return ZombiePhase
+zombiePhaseParser = string "Zombie Phase" >> return ZombiePhase
 
 -- | Parse a Building Phase
 buildingPhaseParser :: Parser PhaseType
-buildingPhaseParser = do string "Building Phase"
-                         return BuildingPhase
+buildingPhaseParser = string "Building Phase" >> return BuildingPhase
 
 -- | Parse a EndPhase Phase
 endPhaseParser :: Parser PhaseType
@@ -85,23 +80,22 @@ phaseParser = do optional whiteParser
                  spawns <- many spawnParser
                  return (Phases timestamp name spawns)
 
+-- | Parses sentence like "home A"
 laneParser :: Parser [Lane]
-laneParser =  do string "lane"
+laneParser =  do string "home"
                  optional whiteParser
                  lane <- digitParser
                  let laneInt = read [lane]
-                 let test = laneInt <= 6
-                 case test of
-                      True -> return [laneInt]
-                      _ -> geefError "lane groter dan 6"
                  return [laneInt]
 
+-- | Parses sentences like " on every home"
 everyParser :: Parser [Lane]
 everyParser = do string "every"
                  optional whiteParser
-                 string "lane"
+                 string "home"
                  return [1,2,3,4,5,6]
 
+-- | Parses sentences like on every lane ...
 onLaneParser :: Parser Spawn
 onLaneParser = do string "on"
                   many whiteParser
@@ -111,15 +105,16 @@ onLaneParser = do string "on"
                   many endlineParser
                   many whiteParser
                   nested <- spawnParser
+                  many whiteParser
                   many endlineParser
                   many whiteParser
                   token '}'
                   endlineParser
                   let runs = [0.0] >>= \i -> getTimes nested >>= \j -> return (i+j)
-                  let lanes = case getLane nested of
+                      lanes = case getLane nested of
                                    [] -> lane
                                    _ -> getLane nested
-                  let zombies = getZombie nested
+                      zombies = getZombie nested
                   return (Spawn runs lanes zombies)
 
 --- after  5 seconds {
@@ -139,10 +134,7 @@ afterParser = do many whiteParser
                  return (Spawn runs lanes zombies)
                  
 endLineSep :: Parser a -> Parser a
-endLineSep p = do
-              optional whiteParser
-              endlineParser
-              p
+endLineSep p = optional whiteParser >> endlineParser >> p
 
 zombieParser :: Parser Zombie
 zombieParser = do zombie <-  string "Dog" <|> string "Citizen" <|> string "Farmer" <|> string "Bucket"
@@ -173,16 +165,16 @@ everySpawnParser = do many whiteParser
                       string "times"
                       many whiteParser
                       let timesInt = read times :: Int
-                      let secInt = read sec ::Float
-                      let run = take timesInt [0,secInt..]
+                          secInt = read sec ::Float
+                          run = take timesInt [0,secInt..]
                       token '{'
                       many whiteParser
                       endlineParser
                       many whiteParser
                       nested <- spawnParser
                       let runs = run >>= \i -> getTimes nested >>= \j -> return (i+j)
-                      let lanes = getLane nested
-                      let zombies = getZombie nested
+                          lanes = getLane nested
+                          zombies = getZombie nested
                       many whiteParser
                       endlineParser
                       many whiteParser
@@ -195,23 +187,20 @@ spawnParser = do many whiteParser
                  endlineParser
                  many whiteParser
                  whatHappend <-  string "on" <|> string "after" <|> string "every" <|> string "Bucket" <|> string "Citzen" <|> string "Farmer" <|> string "Dog"
+                 many whiteParser
                  case whatHappend of
                       "on" -> onLaneParser
                       "after" -> afterParser
                       "every" -> everySpawnParser
-                      "Dog" -> do list <- zombiesParser
-                                  return (Spawn [0] [] (createDog:list))
-                      "Farmer" -> do list <- zombiesParser
-                                     let zombies = createFarmer:list
-                                     return (Spawn [0] [] zombies)
-                      "Citizen" -> do list <- zombiesParser
-                                      let zombies = createCitizen:list
-                                      return(Spawn [0] [] zombies)
-                      "Bucket" -> do whiteParser ; z <- zombieParser
-                                     let z = (z {zombiexp=zombiexp(z)+2})
+                      "Dog" -> zombiesParser >>= \list -> return (Spawn [0] [] (createDog:list))
+                      "Farmer" -> zombiesParser >>= \list -> return (Spawn [0] [] (createFarmer:list))
+                      "Citizen" -> zombiesParser >>= \list -> return(Spawn [0] [] (createCitizen:list))
+                      "Bucket" -> do z <- zombieParser
                                      list <- zombiesParser
-                                     let zombies = z:list
+                                     let z = (z {zombiexp=zombiexp(z)+2})
+                                         zombies = z:list
                                      return (Spawn [0] [] zombies)
+
 
 -- | Parse a level
 levelParser :: Parser Level

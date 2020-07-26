@@ -20,7 +20,7 @@ parseStatement parser a = case parse parser a of
     -- er is een error message gegeven door de parser zelf
     [(Left x, _)]   -> Left x
     -- Het is niet volledig geparsed :(
-    [(_,rest)]      -> Left $ "near:" ++ take 25 rest
+    [(_,rest)]      -> Left $ "near:" ++ rest
     -- grandioos gefaald
     []              -> Left "Failed to parse"
     -- meerdere mogelijkheden
