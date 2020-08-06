@@ -34,7 +34,7 @@ zombieBeforePlant p (x,y) = filter check p
 
 movePeas :: [Plant] -> [Plant]
 movePeas = map (\p -> p {shots = newshots p} )
- where movePea  p@(Pea (x,y) speed _) = p {peapos = (x+speed/60,y)}
+ where movePea  p@(Pea (x,y) _ _ (x',y')) = p {peapos = (x+x',y+y')}
        newshots = map movePea . getPeas
 
 
@@ -60,10 +60,10 @@ zombiePosCheck zombies | any (\z -> getXZombie z <= 0) zombies = Lost
 calcEnergy :: Energy -> [Plant] -> Energy
 calcEnergy en p = en + (sum $ map checkSunflower p)
 
--- TODO FIX conflict met schoot !
+
 -- | check if 3 seconds has passed, and add energy if needed
 checkSunflower :: Plant -> Energy
-checkSunflower (Plant Sunflower _ _ lastshot _) | lastshot >= 180 = 1
+checkSunflower (Plant Sunflower _ _ lastshot _) | lastshot == 180 = 1
                                                 | otherwise = 0
 checkSunflower _ = 0
 
@@ -71,11 +71,14 @@ shootPlants :: [Plant] -> [Plant]
 shootPlants = map shoot
 
 shoot :: Plant -> Plant
-shoot p@(Plant Sunflower _ _ t _) | t >= 180 = p {lastshot=0}
+shoot p@(Plant Sunflower _ _ t _) | t > 180 = p {lastshot=1}
                                          | otherwise = p {lastshot=lastshot(p)+1}
-shoot p@(Plant Peashooter _ _ t _) | t >= 120 = p {lastshot=0,shots=createPea (plantpos(p)):shots(p)}
+shoot p@(Plant Peashooter _ _ t _) | t >= 120 = p {lastshot=0,shots=peas (plantpos(p)) ++ shots(p)}
                                           | otherwise =  p {lastshot=lastshot(p)+1}
 schoot p = p
+
+peas :: Coordinate -> [Pea]
+peas c = map (createPea c) [left,right,up,down]
                                  
 -- | Get all spawns of zombies out of a phase
 spawn :: Time -> [Phases] -> [Zombie]

@@ -3,16 +3,22 @@ module Types where
 import Graphics.Gloss (Picture)
 
 -- | All type synonyms
-type Coordinate = (Float, Int)
+type Coordinate = (Float, Float)
 type Life = Int
 type Damage = Int
-type Lane = Int
+type Lane = Float
 type Speed = Float
 type Time = Float
 type Error = String
 type Energy = Int
 type CurrLevel = Int
 type Direction = Coordinate
+
+left, right, up, down :: Speed -> Direction
+left speed = (-(speed),0)
+right speed = (speed,0)
+up speed = (0,speed)
+down speed= (0,(-speed))
 
 data State = Ongoing | Won | Lost | Menu
              deriving (Eq, Show, Read)
@@ -44,7 +50,7 @@ data Pea = Pea { peapos :: Coordinate
   , peadamage :: Damage
   , peadirection :: Direction
   } deriving (Eq, Show)
-  
+
 data Phases = Phases {  start :: Time
                         , phaseType :: PhaseType
                         , spawns :: [Spawn]
@@ -95,8 +101,9 @@ createSunflower = Plant Sunflower 1 (0,0) 0 []
 createPeaShooter :: Plant
 createPeaShooter = Plant Peashooter 1 (0,0) 0 []
 
-createPea :: Coordinate -> Pea
-createPea c = Pea c 0.5 1
+createPea :: Coordinate -> (Speed -> Direction) -> Pea
+createPea c d = Pea c 0.5 1 (d (0.5/60))
+
 
 -- | creeër een spel with one level (selected level is that given level and is a Just)
 createGame :: Level -> World

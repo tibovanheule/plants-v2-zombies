@@ -157,13 +157,12 @@ drawPlants (Level _ _ _ _ p _ _) = pictures $ (map plantToPicture p) ++ peas
  where
   peas =  map peaToPicture $ concatMap getPeas p
   plantToPicture ( Plant _ _ coor _ _) = coorsToGloss coor plantImage
-  peaToPicture ( Pea coor _ _) = coorsToGloss coor $ color green $ circle 20
+  peaToPicture ( Pea coor _ _ _) = coorsToGloss coor $ color green $ circle 20
 
 -- | Draw the energy score and draw the store where plants can be bought.
 drawStore :: Level -> Picture
 drawStore (Level _ _ _ z _ _ energy) = energytext <> blank
  where
-
   energytext = translate (-100) (-240) $ uscale 0.1 $ text $ "Energy: " ++ show energy
 
 -- | Draws the progressbar
@@ -183,7 +182,7 @@ clickable ex string = color azure bg <> color black fg
 
 
 coorsToGloss :: Coordinate -> Picture -> Picture
-coorsToGloss c@(x, y) = translate (convert breedte x) (negate $ convert hoogte (fromIntegral y))
+coorsToGloss c@(x, y) = translate (convert breedte x) (negate $ convert hoogte y)
  where
   schaalhalf = schaal / 2
   convert bofh xofy = (-schaalhalf * bofh) + schaalhalf + xofy * schaal

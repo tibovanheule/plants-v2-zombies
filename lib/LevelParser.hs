@@ -81,7 +81,7 @@ laneParser :: Parser [Lane]
 laneParser =  do string "home"
                  whiteParser
                  lane <- digitParser
-                 return [read [lane] ::Int]
+                 return [read [lane] ::Float]
 
 -- | Parses sentences like " on every home"
 everyParser :: Parser [Lane]
