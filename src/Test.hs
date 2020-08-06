@@ -1,7 +1,6 @@
 module Main where
 import System.Environment
 import System.Exit
-import Game
 import Types
 import System.IO
 import Data.Either
@@ -9,6 +8,10 @@ import System.Directory
 import System.FilePath
 import Control.Applicative
 import Control.Monad
+import LevelParser
+import Parser
+import SetupParser
+import Game
 
 main :: IO ()
 main = do args <- getArgs
@@ -39,5 +42,13 @@ runTest game = case getState game of
 
 -- | Give the world a time tick, then let runtest decide if a tick is again needed
 tick :: World -> IO()
-tick (World time (Just l) _ _ e _) = print time >> (runTest $ changeWorld time e l)
-tick (World _ Nothing _ _ _ _) = die "ERROR, no level"
+tick w@(World _ (Just _) _ _ _) = (runTest $ changeWorld w)
+tick (World _ Nothing _ _ _) = die "ERROR, no level"
+
+-- | Call parser en parse defence file contents using setupparser
+getDefence :: String -> Either Error [Plant]
+getDefence = parseStatement setupParser
+
+-- | Call parser en parse level file contents using levelparser
+getLevel :: String -> Either Error Level
+getLevel =  parseStatement levelParser

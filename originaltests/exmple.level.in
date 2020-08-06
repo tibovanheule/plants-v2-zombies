@@ -2,9 +2,9 @@ Boring Example Level (0.3)
 Sunflower, Peashooter
 00:00 - Building Phase
 00:10 - Zombie Phase
-on every home { Bucket Dog }
+on every home { Dog }
 every 3.5 seconds for 10 times {
-  on every home { Citizen }
+    on every home { Citizen }
 }
 after  5 seconds { on home 1     { Farmer } }
 after 10 seconds { on home 2     { Farmer } }
@@ -19,7 +19,6 @@ every 5 seconds for 10 times {
   every 1 seconds for 3 times {
     on home 3 {
       Dog
-      Citizen
     }
   }
 }

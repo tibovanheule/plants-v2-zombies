@@ -12,11 +12,7 @@ type Time = Float
 type Error = String
 type Energy = Int
 type CurrLevel = Int
-
-
-data Images =  Images
-    { back :: Picture
-    } deriving (Show)
+type Direction = Coordinate
 
 data State = Ongoing | Won | Lost | Menu
              deriving (Eq, Show, Read)
@@ -46,6 +42,7 @@ data Plant = Plant { planttype   :: PlantType
 data Pea = Pea { peapos :: Coordinate
   , peaspeed :: Speed
   , peadamage :: Damage
+  , peadirection :: Direction
   } deriving (Eq, Show)
   
 data Phases = Phases {  start :: Time
@@ -57,20 +54,24 @@ data Spawn = Spawn { wanneer :: [Time]
                     ,lanes :: [Lane]
                     ,types :: [Zombie]
 } deriving (Show)
-                  
+
+-- | Level keeps information about a level
 data Level = Level { title :: String
                    , difficulty :: Float
                    , seeds :: [PlantType]
                    , zombies :: [Zombie]
                    , plants   :: [Plant]
                    , phase :: [Phases]
+                   , energy :: Energy
 } deriving (Show)
-                  
-data World = World { time   :: Time
+
+-- | World Data type, keeps all level options (as read by the parser) and keep state
+data World = World {
+                     -- time keeps
+                    time   :: Time
                    , chosenLevel :: Maybe Level
                    , state :: State
                    , plevels :: [Level]
-                   , energy :: Energy
                    , currlevel :: CurrLevel
                    } deriving (Show)
 
@@ -80,13 +81,13 @@ data World = World { time   :: Time
 
 ----- Constructors
 createDog :: Zombie                   
-createDog = Zombie Dog 2 (9,0) 3 0.1
+createDog = Zombie Dog 2 (9,0) 3 3
 
 createFarmer :: Zombie
-createFarmer = Zombie Farmer 3 (9,0) 4 (1/30)
+createFarmer = Zombie Farmer 3 (9,0) 4 1
 
 createCitizen :: Zombie
-createCitizen = Zombie Citizen 3 (9,0) 2 (1/30)
+createCitizen = Zombie Citizen 3 (9,0) 2 1
 
 createSunflower :: Plant
 createSunflower = Plant Sunflower 1 (0,0) 0 []
@@ -99,11 +100,11 @@ createPea c = Pea c 0.5 1
 
 -- | creeër een spel with one level (selected level is that given level and is a Just)
 createGame :: Level -> World
-createGame l = World 0 (Just l) Ongoing [] 0 0
+createGame l = World 0 (Just l) Ongoing [] 0
 
 -- | create a game with multiple levels, selected level is a Nothing
 createPossibleGame :: [Level] -> World
-createPossibleGame l = World 0 Nothing Menu l 0 0
+createPossibleGame l = World 0 Nothing Menu l 0
                    
 ---- GETTERS
 getTimes :: Spawn -> [Time]
@@ -112,24 +113,29 @@ getTimes (Spawn t _ _) = t
 getZombie :: Spawn -> [Zombie]
 getZombie (Spawn _ _ z) = z
 
-getLane :: Spawn -> [Lane]
-getLane (Spawn _ l _) = l
+getLanes :: Spawn -> [Lane]
+getLanes (Spawn _ l _) = l
+
+getPeas :: Plant -> [Pea]
+getPeas (Plant _ _ _ _ p) = p
 
 -- krijg de staat van het spel
 getState :: World -> State
-getState (World _ _ s _ _ _) = s
+getState (World _ _ s _ _ ) = s
 
 -- krijg tijd van het spel
 getTime :: World -> Time
-getTime (World t _ _ _ _ _) = t
+getTime (World t _ _ _ _ ) = t
 
 -- krijg x-coordinaat van zombie
-getXZombie :: Zombie -> Float
+getXZombie :: Zombie -> Time
 getXZombie (Zombie _ _ (x,_) _ _) = x
 
--- krijg de spawns van een phase
-getSpawnsType :: Phases-> [Spawn]
-getSpawnsType (Phases _ _ s) = s
+-- | Get the spawns of a phase
+getSpawns :: Phases -> [Spawn]
+getSpawns (Phases _ _ s) = s
 
-getEnd :: [Phases] -> (Int,Int)
-getEnd p = (1,1)
+-- | Time of the EndPhase
+getEnd :: [Phases] -> Float
+getEnd = (*60) . getTimePhase . last
+ where getTimePhase (Phases t _ _ ) = t

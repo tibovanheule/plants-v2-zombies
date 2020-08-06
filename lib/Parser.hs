@@ -104,5 +104,5 @@ digitParser :: Parser Char
 digitParser = spot isDigit
 
 -- | Parse a new line
-endlineParser :: Parser String
+endlineParser :: Parser [Char]
 endlineParser = many $ token '\n' <|> token '\r'
