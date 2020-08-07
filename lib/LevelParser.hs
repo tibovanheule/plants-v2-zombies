@@ -201,4 +201,4 @@ levelParser = do title <- titleParser
                  seeds <- seedsParser
                  endlineParser
                  phases <- some phaseParser
-                 return $ Level title diff seeds [] [(Plant Sunflower 3 (1,2) 0 []),(Plant Peashooter 3 (0,1) 0 [])] phases 50
+                 return $ Level title diff seeds [] [] phases 10 Nothing

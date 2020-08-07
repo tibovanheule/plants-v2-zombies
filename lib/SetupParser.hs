@@ -18,11 +18,11 @@ lineParser = do
                 parseWhiteSpace
                 seed <- seedParser
                 life <- case seed of
-                             Walnut -> return 50
+                             Walnut -> return 5
                              _ -> return 1
                 token ')'
                 endlineParser
-                return (Plant seed life (read [x],read [y]) 0 [])
+                return (Plant seed life (read [x],read [y]) 0 [] 0)
 
 seedParser :: Parser PlantType
 seedParser  = do x <- string "Sunflower" <|> string "Peashooter" <|> string "Walnut"

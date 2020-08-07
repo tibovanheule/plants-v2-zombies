@@ -35,7 +35,7 @@ main = do args <- getArgs
 -- | run a game in Test modus, simulates time ticks
 runTest :: World -> IO()
 runTest game = case getState game of
-                    Ongoing -> print game >> tick game
+                    Ongoing -> tick game
                     Menu -> die "ERROR, state corrupted"
                     Lost -> putStr "Loss after " >> putStr ( show (getTime game)) >> putStr " seconds" >> exitSuccess
                     Won -> putStr "Victory at " >> putStr (show (getTime game)) >> exitSuccess

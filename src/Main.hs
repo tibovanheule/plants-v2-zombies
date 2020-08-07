@@ -53,7 +53,7 @@ readLevelFiles = mapM readLevelFile
 
 -- | Parse filepath to parsed level.
 readLevelFile :: FilePath -> IO (Either Error Level)
-readLevelFile file = readFile file >>= \x -> return (getLevel x)
+readLevelFile file = readFile file >>= return . getLevel
 
 -- | Call parser en parse level file contents using levelparser
 getLevel :: String -> Either Error Level

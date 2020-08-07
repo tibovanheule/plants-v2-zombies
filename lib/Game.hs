@@ -3,46 +3,55 @@ module Game where
 import           Types
 import Debug.Trace
 changeWorld :: World -> World
-changeWorld (World time (Just l@(Level _ _ _ z p phases en)) _ levels currlevel) = World (time+1) level newState levels currlevel
-                                         where zom =  (map (actZombie p) (dead z)) ++ spawn time phases
+changeWorld (World time (Just l@(Level _ _ _ z p phases en _)) _ levels currlevel) = World (time+1) level newState levels currlevel
+                                         where zom =  map (actZombie p) ((dead z) ++ spawn time phases)
                                                filteredPhases = filterPhases time phases
-                                               plant = movePeas $ shootPlants p
+                                               plant = movePeas z $ map shoot p
                                                currentState = head filteredPhases
                                                newState = isWon time currentState z
                                                level = Just (l { zombies=zom, phase= filteredPhases, plants=plant, energy=calcEnergy en p})
 --- GAME LOGIC
 
+-- | add a plant to a level
+addplant :: Level -> Coordinate -> Level
+addplant l c@(x,y) | energy(l)-3 > 0  &&  isCoorTaken =  l { plants=plant ++ plants(l), energy = energy(l)-3}
+                   | otherwise = l
+ where isCoorTaken = not $ any check (plants(l))
+       check (Plant _ _ (x',y') _  _ _) = (x == x') && (y == y')
+       plant = case chosenplant(l) of
+                   Just Walnut -> [createWalnut c]
+                   Just Peashooter -> [createPeaShooter c]
+                   Just Sunflower -> [createSunflower c]
+                   Nothing -> []
+
 -- | filter away dead zombies
 dead :: [Zombie] -> [Zombie]
-dead = filter isAlive
-       where isAlive (Zombie _ l _ _ _) = l > 0
+dead = filter (\(Zombie _ l _ _ _) -> l > 0)
 
--- | move a zombie or figth with plant, only if possible.
+-- | move a zombie , figth with plant, or get hit only if possible.
 actZombie :: [Plant] -> Zombie -> Zombie
-actZombie plants z@(Zombie _ _ c@(x,y) _ speed) = z { zombiepos=pos }
-               where pos = case zombieBeforePlant plants (x-1,y) of
-                                [] ->  (x-(speed/60),y)
+actZombie plants z@(Zombie _ life c@(x,y) _ speed) = z { zombiepos=pos, zombielife=newlife }
+               where isHit (Pea (x',y') _ _ _) = abs(x - x') <= 0.5 && abs(y - y') <= 0.5
+                     peas = filter (isHit) $ concatMap getPeas plants
+                     newlife | null peas =  life
+                             | otherwise = sum $ map (((-) life) . getDamage) peas
+                     pos = case zombieBeforePlant plants (x-1.0,y) of
+                                [] -> (x-(speed/60),y)
                                 p -> c
 
-isHit :: Coordinate -> Coordinate -> Bool
-isHit (x,y) (x',y') = x - x' <= 10 && y - y' <= 10
 
 -- | Checks if there is a plant that stands in the way of the zombie
 zombieBeforePlant :: [Plant] -> Coordinate -> [Plant]
 zombieBeforePlant p (x,y) = filter check p
-                            where check (Plant _ _ (x',y') _ _) = (x' >= x && y' == y)
+                            where check (Plant _ _ (x',y') _ _ _) = (x' - x) > 0 && (x' - x) < 1 && y' == y
 
-movePeas :: [Plant] -> [Plant]
-movePeas = map (\p -> p {shots = newshots p} )
- where movePea  p@(Pea (x,y) _ _ (x',y')) = p {peapos = (x+x',y+y')}
-       newshots = map movePea . getPeas
-
-
-
-
--- | Reduce a Life with damage x
-damage :: Life -> Damage -> Life
-damage = (-)
+movePeas :: [Zombie] -> [Plant] -> [Plant]
+movePeas z = map (\p -> p {shots = newshots p} )
+ where outOfBound (Pea (x,y) _ _ _) = y > 5 || x < 0 || x > 8 || y < 0
+       delPeaCond p = outOfBound p || any (isHit p) z
+       isHit (Pea (x,y) _ _ _) (Zombie _ _ (x',y') _ _) = abs(x - x') <= 0.5 && abs(y - y') <= 0.5
+       movePea  p@(Pea (x,y) _ _ (x',y')) = p {peapos = (x+x',y+y')}
+       newshots = map movePea . filter ( not . delPeaCond) . getPeas
 
 -- | geeft de staat van spel terug
 isWon :: Time -> Phases -> [Zombie] -> State
@@ -63,18 +72,14 @@ calcEnergy en p = en + (sum $ map checkSunflower p)
 
 -- | check if 3 seconds has passed, and add energy if needed
 checkSunflower :: Plant -> Energy
-checkSunflower (Plant Sunflower _ _ lastshot _) | lastshot == 180 = 1
-                                                | otherwise = 0
+checkSunflower (Plant Sunflower _ _ 180 _ _) = 1
 checkSunflower _ = 0
 
-shootPlants :: [Plant] -> [Plant]
-shootPlants = map shoot
-
 shoot :: Plant -> Plant
-shoot p@(Plant Sunflower _ _ t _) | t > 180 = p {lastshot=1}
-                                         | otherwise = p {lastshot=lastshot(p)+1}
-shoot p@(Plant Peashooter _ _ t _) | t >= 120 = p {lastshot=0,shots=peas (plantpos(p)) ++ shots(p)}
-                                          | otherwise =  p {lastshot=lastshot(p)+1}
+shoot p@(Plant Sunflower _ _ t _ _ ) | t > 180 = p {lastshot=1}
+                                     | otherwise = p {lastshot=lastshot(p)+1}
+shoot p@(Plant Peashooter _ _ t _ _ ) | t == 120 = p {lastshot=0,shots=peas (plantpos(p)) ++ shots(p)}
+                                      | otherwise =  p {lastshot=lastshot(p)+1}
 schoot p = p
 
 peas :: Coordinate -> [Pea]
@@ -82,23 +87,13 @@ peas c = map (createPea c) [left,right,up,down]
                                  
 -- | Get all spawns of zombies out of a phase
 spawn :: Time -> [Phases] -> [Zombie]
-spawn t = checkSpawns t . getCurrentPhaseSpawns
+spawn t = concatMap (createZombies t) . getCurrentPhaseSpawns
 
--- controleerd de spaws en een lijst van zombies maken als dit nodig blijkt
-checkSpawns :: Time -> [Spawn] -> [Zombie]
-checkSpawns t = concatMap (createZombies t)
-
--- een lijst van zombies maken als dit nodig blijkt
+-- | een lijst van zombies maken als dit nodig blijkt
 createZombies :: Time -> Spawn -> [Zombie]
-createZombies t (Spawn r l z) | needed t r = putZombieOnLane z l
-                              | otherwise = []
- where
-  needed ti = any ((==) ti . (*60) )
-
--- | For every lane in the lane list, create a zombie
-putZombieOnLane :: [Zombie] -> [Lane] -> [Zombie]
-putZombieOnLane zombies l = concatMap updateLane l
- where updateLane lane = map (\z -> z {zombiepos=(getXZombie z,lane)} ) zombies
+createZombies time (Spawn r l zombies) | any ((==) time . (*60) ) r = concatMap putZombieOnLane l
+                                       | otherwise = []
+ where putZombieOnLane lane = map (\z -> z {zombiepos=(getXZombie z,lane-1)} ) zombies
 
 -- | use Time to filter Phases that ended
 filterPhases :: Time -> [Phases] -> [Phases]

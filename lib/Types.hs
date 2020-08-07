@@ -32,7 +32,7 @@ data ZombieType = Citizen | Farmer | Dog
              deriving (Eq, Show, Read)
 
 data Zombie = Zombie { zombietype   :: ZombieType
-                   , zombiexp :: Life
+                   , zombielife :: Life
                    , zombiepos :: Coordinate
                    , zombiedamage :: Damage
                    , zombiespeed :: Speed
@@ -43,6 +43,7 @@ data Plant = Plant { planttype   :: PlantType
                   , plantpos :: Coordinate
                   , lastshot :: Time
                   , shots :: [Pea]
+                  , cost :: Int
                   } deriving (Eq,Show)
                   
 data Pea = Pea { peapos :: Coordinate
@@ -69,6 +70,7 @@ data Level = Level { title :: String
                    , plants   :: [Plant]
                    , phase :: [Phases]
                    , energy :: Energy
+                   , chosenplant :: Maybe PlantType
 } deriving (Show)
 
 -- | World Data type, keeps all level options (as read by the parser) and keep state
@@ -87,23 +89,25 @@ data World = World {
 
 ----- Constructors
 createDog :: Zombie                   
-createDog = Zombie Dog 2 (9,0) 3 3
+createDog = Zombie Dog 2 (9,0) 3 1
 
 createFarmer :: Zombie
-createFarmer = Zombie Farmer 3 (9,0) 4 1
+createFarmer = Zombie Farmer 3 (9,0) 4 (1/3)
 
 createCitizen :: Zombie
-createCitizen = Zombie Citizen 3 (9,0) 2 1
+createCitizen = Zombie Citizen 3 (9,0) 2 (1/3)
 
-createSunflower :: Plant
-createSunflower = Plant Sunflower 1 (0,0) 0 []
+createSunflower :: Coordinate -> Plant
+createSunflower c = Plant Sunflower 1 c 0 [] 3
 
-createPeaShooter :: Plant
-createPeaShooter = Plant Peashooter 1 (0,0) 0 []
+createPeaShooter :: Coordinate -> Plant
+createPeaShooter c = Plant Peashooter 1 c 0 [] 6
+
+createWalnut :: Coordinate -> Plant
+createWalnut c = Plant Walnut 5 c 0 [] 6
 
 createPea :: Coordinate -> (Speed -> Direction) -> Pea
 createPea c d = Pea c 0.5 1 (d (0.5/60))
-
 
 -- | creeër een spel with one level (selected level is that given level and is a Just)
 createGame :: Level -> World
@@ -124,7 +128,7 @@ getLanes :: Spawn -> [Lane]
 getLanes (Spawn _ l _) = l
 
 getPeas :: Plant -> [Pea]
-getPeas (Plant _ _ _ _ p) = p
+getPeas (Plant _ _ _ _ p _) = p
 
 -- krijg de staat van het spel
 getState :: World -> State
@@ -142,7 +146,16 @@ getXZombie (Zombie _ _ (x,_) _ _) = x
 getSpawns :: Phases -> [Spawn]
 getSpawns (Phases _ _ s) = s
 
+-- | Get the next phase
+getNextPhase :: [Phases] -> Phases
+getNextPhase [] = Phases 0 EndPhase []
+getNextPhase (h:[]) = h
+getNextPhase (_:t) = head t
+
 -- | Time of the EndPhase
 getEnd :: [Phases] -> Float
 getEnd = (*60) . getTimePhase . last
  where getTimePhase (Phases t _ _ ) = t
+
+getDamage :: Pea -> Damage
+getDamage (Pea _ _ d _) = d
