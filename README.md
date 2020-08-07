@@ -2,6 +2,15 @@
 ## Documentation
 The documentation of this project can be found at 
 
+## Interface options
+### Options when starting with gui
+There are a few extra options for debugging purposes.
+ - debug = Output of the parser will be printed on standard output. 
+ - time = Displays the gloss time ticks  on std out.
+ - events = Prints all gloss events on std out. This is particulary handy for mouse events.
+ - exit = used in conjunction with debug, after parser parses the files exit (don't start gui)
+ 
+
 ## gebruikte bronnen
 This is a small bibliography of documentation, articles and tutorials whoinfluenced the project.
 ### reactive banana + Gloss
@@ -18,3 +27,6 @@ http://hackage.haskell.org/package/gloss-algorithms-1.9.2.1/docs/Graphics-Gloss-
 https://hackage.haskell.org/package/base-4.14.0.0/docs/System-Exit.html
 ### Haskell source code formatter (style formatter)
 https://github.com/lspitzner/brittany
+### Screnshot save
+https://hackage.haskell.org/package/gloss-export-0.1.0.2/docs/Graphics-Gloss-Export-PNG.html
+
