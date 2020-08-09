@@ -24,7 +24,7 @@ after 35 seconds { on every home { Farmer } }
 every 5 seconds for 10 times {
   every 1 seconds for 3 times {
     on home 3 {
-      Dog
+      Bucket Dog
     }
   }
 }

@@ -68,7 +68,7 @@ isWon t p@(Phases dur EndPhase _) (_:_) | t >= (dur * 60) = Lost
 isWon _ _ z = Ongoing
 
 zombiePosCheck :: [Zombie] -> State
-zombiePosCheck zombies | any (\z -> (fst $ zombiepos z) <= 0) zombies = Lost
+zombiePosCheck zombies | any ((<=) 0 . fst . zombiepos) zombies = Lost
                        | otherwise = Ongoing
 
 -- | calculates total amount of energy, uses checkSunflower function ()
@@ -88,6 +88,7 @@ shoot p@(Plant Peashooter _ _ t _ _ ) | t == 120 = p {lastshot=0,shots=peas (pla
                                       | otherwise =  p {lastshot=lastshot p + 1}
 shoot p = p
 
+-- | Converts a coordinate to a array of Peas (in all direction)
 peas :: Coordinate -> [Pea]
 peas c = map (createPea c) [left,right,up,down]
                                  
@@ -97,7 +98,7 @@ spawn t = concatMap (createZombies t) . getCurrentPhaseSpawns
 
 -- | een lijst van zombies maken als dit nodig blijkt
 createZombies :: Time -> Spawn -> [Zombie]
-createZombies time (Spawn r l zombies) | any ((==) time . (*60) ) r = concatMap putZombieOnLane l
+createZombies time (Spawn r l zombies) | any ((==) time . (*60)) r = concatMap putZombieOnLane l
                                        | otherwise = []
  where putZombieOnLane lane = map (\z -> z {zombiepos=(fst $ zombiepos z,lane-1)} ) zombies
 
@@ -110,8 +111,7 @@ filterPhases t p | length p > 1 = del (p !! 1)
                          | otherwise = p
 
 getCurrentPhaseSpawns :: [Phases] -> [Spawn]
-getCurrentPhaseSpawns [] = []
-getCurrentPhaseSpawns h = phaseSpawns $ head h
+getCurrentPhaseSpawns = phaseSpawns . head
 
 
 

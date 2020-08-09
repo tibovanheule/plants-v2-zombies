@@ -187,8 +187,16 @@ spawnParser = do whiteEndWhiteParser
                        "Dog" -> return (Spawn [0] [] [createDog])
                        "Citizen" -> return (Spawn [0] [] [createCitizen])
                        "Farmer" -> return (Spawn [0] [] [createFarmer])
-                       "Bucket" -> return (Spawn [0] [] [])
+                       "Bucket" -> bucketParser
                        _ -> geefError "Not in case"
+
+bucketParser :: Parser Spawn
+bucketParser = do what <- string "Citizen" <|> string "Farmer" <|> string "Dog"
+                  let zombie = case what of
+                                    "Dog" -> createDog
+                                    "Citizen" ->  createCitizen
+                                    "Farmer" -> createFarmer
+                  return (Spawn [0] [] [zombie { zombielife = zombielife zombie + 2 }])
 
 
 mapParser :: Parser Map

@@ -41,8 +41,9 @@ main = do
 
           -- DEBUG we only want the parsing info
           when exit exitSuccess
-          -- Start GUI
+          -- images are for gui elements
           images <- readImages
+          -- Start GUI
           graphic time events images $ createPossibleGame (rights parsedFiles)
 
 -- | Get all FilePaths of the files in a directory.
