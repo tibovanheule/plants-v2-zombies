@@ -20,14 +20,19 @@ right speed = (speed,0)
 up speed = (0,speed)
 down speed= (0,-speed)
 
+-- |Diffrent state of a game
 data State = Ongoing | Won | Lost | Menu
              deriving (Eq, Show, Read)
-             
+
+-- | diffrent phases of a level game
 data PhaseType = ZombiePhase | BuildingPhase | EndPhase
                 deriving (Eq,Show,Read)
-             
+
+-- | Possible types of plants
 data PlantType = Sunflower | Peashooter | Walnut
              deriving (Eq, Show, Read)
+
+-- | Possible ypes of zombies
 data ZombieType = Citizen | Farmer | Dog 
              deriving (Eq, Show, Read)
 
@@ -54,12 +59,12 @@ data Pea = Pea { peapos :: Coordinate
 
 data Phases = Phases {  start :: Time
                         , phaseType :: PhaseType
-                        , spawns :: [Spawn]
+                        , phaseSpawns :: [Spawn]
 } deriving (Show)
 
 data Spawn = Spawn { wanneer :: [Time]
-                    ,lanes :: [Lane]
-                    ,types :: [Zombie]
+                    ,spawnLanes :: [Lane]
+                    ,spawnzombies :: [Zombie]
 } deriving (Show)
 
 -- | Level keeps information about a level
@@ -101,12 +106,16 @@ data Images = Images {
 
 
 ----- Constructors
+
+-- | Create a zombie Dog
 createDog :: Zombie                   
 createDog = Zombie Dog 2 (9,0) 3 1
 
+-- | Create a zombie Farmer
 createFarmer :: Zombie
 createFarmer = Zombie Farmer 3 (9,0) 4 (1/3)
 
+-- | Create a zombie citizen
 createCitizen :: Zombie
 createCitizen = Zombie Citizen 3 (9,0) 2 (1/3)
 
@@ -130,35 +139,7 @@ createGame l = World 0 (Just l) Ongoing [] 0
 createPossibleGame :: [Level] -> World
 createPossibleGame l = World 0 Nothing Menu l 0
                    
----- GETTERS
-getTimes :: Spawn -> [Time]
-getTimes (Spawn t _ _) = t 
-
-getZombie :: Spawn -> [Zombie]
-getZombie (Spawn _ _ z) = z
-
-getLanes :: Spawn -> [Lane]
-getLanes (Spawn _ l _) = l
-
-getPeas :: Plant -> [Pea]
-getPeas (Plant _ _ _ _ p _) = p
-
--- krijg de staat van het spel
-getState :: World -> State
-getState (World _ _ s _ _ ) = s
-
--- krijg tijd van het spel
-getTime :: World -> Time
-getTime (World t _ _ _ _ ) = t
-
--- krijg x-coordinaat van zombie
-getXZombie :: Zombie -> Time
-getXZombie (Zombie _ _ (x,_) _ _) = x
-
--- | Get the spawns of a phase
-getSpawns :: Phases -> [Spawn]
-getSpawns (Phases _ _ s) = s
-
+---- SPECIAL Getters
 -- | Get the next phase
 getNextPhase :: [Phases] -> Phases
 getNextPhase [] = Phases 0 EndPhase []

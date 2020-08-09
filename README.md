@@ -1,6 +1,7 @@
 # Plants v2. Zombies
 ## Documentation
-The documentation of this project can be found at 
+The documentation of this project can be found at https://tibovanheule.space/plantenvszombies/
+
 
 ## Interface options
 ### Options when starting with gui

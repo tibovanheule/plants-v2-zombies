@@ -19,7 +19,7 @@ defaultNeigbours c = map (add c) [(1,0),(0,1),(-1,0),(0,-1)]
 nowall :: Coordinate -> Coordinate -> Bool
 nowall current next = not ((current,next) `elem` walls || (next,current) `elem` walls)
 
-astarSearch :: Coordinate -> (Coordinate -> Bool) -> (Coordinate -> [(Coordinate, Int)]) -> (Coordinate -> Int) -> Maybe (Int, [Coordinate])
+astarSearch :: Coordinate -> (Coordinate -> Bool) -> (Coordinate -> [(Coordinate, Int)]) -> (Coordinate -> Int) -> Maybe [Coordinate]
 astarSearch startNode isGoalNode nextNodeFn heuristic =
   astar (PQ.singleton (heuristic startNode) (startNode, 0))
          Set.empty (Map.singleton startNode 0) Map.empty
@@ -28,7 +28,7 @@ astarSearch startNode isGoalNode nextNodeFn heuristic =
       -- failed => return nothing
       | PQ.null pq = Nothing
       -- Success
-      | isGoalNode node = Just (gcost, findPath tracks node)
+      | isGoalNode node = Just ( getPath tracks node)
       -- Already seen
       | Set.member node seen = astar pq' seen gscore tracks
       -- Else expand the node and continue
@@ -61,6 +61,6 @@ astarSearch startNode isGoalNode nextNodeFn heuristic =
     successorsAndCosts node gcost =
       map (\(s, g) -> (s, gcost + g, heuristic s)) . nextNodeFn $ node
 
-    -- Constructs the path from the tracks and last node
-    findPath tracks node | Map.member node tracks = findPath tracks (fromJust . Map.lookup node $ tracks) ++ [node]
-                         | otherwise = [node]
+    -- If a Path is possible, construct it
+    getPath tracks node | Map.member node tracks = getPath tracks (fromJust . Map.lookup node $ tracks) ++ [node] -- nod is meber of tracks
+                        | otherwise = [node]

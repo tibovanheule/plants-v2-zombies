@@ -173,7 +173,7 @@ drawZombies (Level _ _ _ z _ _ _ _) im = pictures $ map zombieToPicture z
 drawPlants :: Level -> Images -> Picture
 drawPlants (Level _ _ _ _ p _ _ _) im = pictures $ map plantToPicture p ++ peas
  where
-  peas =  map peaToPicture $ concatMap getPeas p
+  peas =  map peaToPicture $ concatMap shots p
   plantToPicture ( Plant typ _ coor _ _ _) = coorsToGloss coor (plantImage typ)
   peaToPicture ( Pea coor _ _ _) = coorsToGloss coor $ color green $ circle 15
   scaler = scale (50/200) (40/161)

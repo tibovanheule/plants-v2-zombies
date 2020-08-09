@@ -34,11 +34,11 @@ main = do args <- getArgs
 -- persoonlijk vind ik deze code te kort voor in een aparte module te steken
 -- | run a game in Test modus, simulates time ticks
 runTest :: World -> IO()
-runTest game = case getState game of
+runTest game = case state game of
                     Ongoing -> tick game
                     Menu -> die "ERROR, state corrupted"
-                    Lost -> putStr "Loss after " >> putStr ( show (getTime game)) >> putStr " seconds" >> exitSuccess
-                    Won -> putStr "Victory at " >> putStr (show (getTime game)) >> exitSuccess
+                    Lost -> putStr "Loss after " >> putStr ( show (time game)) >> putStr " seconds" >> exitSuccess
+                    Won -> putStr "Victory at " >> putStr (show (time game)) >> exitSuccess
 
 -- | Give the world a time tick, then let runtest decide if a tick is again needed
 tick :: World -> IO()

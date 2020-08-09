@@ -110,15 +110,15 @@ onLaneParser = do lane <- everyParser <|> laneParser
                   endlineParser
                   let runs = case nested of
                                 Nothing -> [0]
-                                Just t -> [0.0] >>= \i -> getTimes t >>= \j -> return (i+j)
+                                Just t -> [0.0] >>= \i -> wanneer t >>= \j -> return (i+j)
                       lanes = case nested of
                                    Nothing -> lane
-                                   Just t -> case getLanes t of
+                                   Just t -> case spawnLanes t of
                                                   [] -> lane
-                                                  _ -> getLanes t
+                                                  _ -> spawnLanes t
                       zombies = case nested of
                                      Nothing -> []
-                                     Just t -> getZombie t
+                                     Just t -> spawnzombies t
                   return (Spawn runs lanes zombies)
 
 
@@ -133,13 +133,13 @@ afterParser = do time <- some $ digitParser <|> token '.'
                  nested <- optional spawnParser
                  let runs = case nested of
                                 Nothing -> [read time ::Float]
-                                Just t -> [read time ::Float] >>= \i -> getTimes t >>= \j -> return (i+j)
+                                Just t -> [read time ::Float] >>= \i -> wanneer t >>= \j -> return (i+j)
                      lanes = case nested of
                                    Nothing -> []
-                                   Just t -> getLanes t
+                                   Just t -> spawnLanes t
                      zombies = case nested of
                                      Nothing -> []
-                                     Just t -> getZombie t
+                                     Just t -> spawnzombies t
                  whiteEndWhiteParser
                  token '}'
                  whiteEndWhiteParser
@@ -163,13 +163,13 @@ everySpawnParser = do whiteParser
                       let run = [read times :: Int] >>= \timesInt -> [read sec ::Float] >>= \secInt -> take timesInt [0,secInt..]
                           runs = case nested of
                                     Nothing -> run
-                                    Just t -> run >>= \i -> getTimes t >>= \j -> return (i+j)
+                                    Just t -> run >>= \i -> wanneer t >>= \j -> return (i+j)
                           lanes = case nested of
                                        Nothing -> []
-                                       Just t -> getLanes t
+                                       Just t -> spawnLanes t
                           zombies = case nested of
                                          Nothing -> []
-                                         Just t -> getZombie t
+                                         Just t -> spawnzombies t
                       whiteEndWhiteParser
                       token '}'
                       endlineParser
@@ -193,24 +193,27 @@ spawnParser = do whiteEndWhiteParser
 
 mapParser :: Parser Map
 mapParser = do line1 <- maplineParser
-               endlineParser
                line2 <- maplineParser
-               endlineParser
                line3 <- maplineParser
-               endlineParser
                line4 <- maplineParser
-               endlineParser
                line5 <- maplineParser
-               endlineParser
                line6 <- maplineParser
-               endlineParser
                return (Map [] [] [] )
 
 maplineParser :: Parser Map
-maplineParser = do endlineParser
-                   cells <- many $ hex <|> token 'X' <|> grave
+maplineParser = do cell1 <- cel
+                   cell2 <- cel
+                   cell3 <- cel
+                   cell4 <- cel
+                   cell5 <- cel
+                   cell6 <- cel
+                   cell7 <- cel
+                   cell8 <- cel
+                   cell9 <- cel
+                   endlineParser
                    return (Map [] [] [] )
- where hex = spot (\x -> isHexDigit x && isLower x)
+ where cel = hex <|> token 'X' <|> grave
+       hex = spot (\x -> isHexDigit x && (isLower x || isDigit x))
        grave = spot isUpper
 
 -- | Parse a level
@@ -220,7 +223,6 @@ levelParser = do title <- titleParser
                  endlineParser
                  seeds <- seedsParser
                  endlineParser
-                 -- map <- mapParser
-                 endlineParser
+                 map <- mapParser
                  phases <- some phaseParser
                  return $ Level title diff seeds [] [] phases 10 Nothing

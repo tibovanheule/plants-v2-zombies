@@ -15,7 +15,7 @@ changeWorld (World time (Just l@(Level _ _ _ z p phases en _)) _ levels currleve
 
 -- | add a plant to a level
 addplant :: Level -> Coordinate -> Level
-addplant l c@(x,y) | energy l - cost > 0  && isJust (chosenplant l) &&  isCoorTaken =  l { plants=plant ++ plants l, energy = energy l - cost}
+addplant l c@(x,y) | energy l - cost >= 0  && isJust (chosenplant l) &&  isCoorTaken =  l { plants=plant ++ plants l, energy = energy l - cost}
                    | otherwise = l
  where isCoorTaken = not $ any check (plants l)
        check (Plant _ _ (x',y') _  _ _) = (x == x') && (y == y')
@@ -38,7 +38,7 @@ dead = filter (\(Zombie _ l _ _ _) -> l > 0)
 actZombie :: [Plant] -> Zombie -> Zombie
 actZombie plants z@(Zombie _ life c@(x,y) _ speed) = z { zombiepos=pos, zombielife=newlife }
                where isHit (Pea (x',y') _ _ _) = abs(x - x') <= 0.5 && abs(y - y') <= 0.5
-                     peas = filter isHit $ concatMap getPeas plants
+                     peas = filter isHit $ concatMap shots plants
                      newlife | null peas =  life
                              | otherwise = sum $ map ((life -) . peadamage) peas
                      pos = case zombieBeforePlant plants (x-1.0,y) of
@@ -57,7 +57,7 @@ movePeas z = map (\p -> p {shots = newshots p} )
        delPeaCond p = outOfBound p || any (isHit p) z
        isHit (Pea (x,y) _ _ _) (Zombie _ _ (x',y') _ _) = abs(x - x') <= 0.5 && abs(y - y') <= 0.5
        movePea  p@(Pea (x,y) _ _ (x',y')) = p {peapos = (x+x',y+y')}
-       newshots = map movePea . filter ( not . delPeaCond) . getPeas
+       newshots = map movePea . filter ( not . delPeaCond) . shots
 
 -- | geeft de staat van spel terug
 isWon :: Time -> Phases -> [Zombie] -> State
@@ -68,7 +68,7 @@ isWon t p@(Phases dur EndPhase _) (_:_) | t >= (dur * 60) = Lost
 isWon _ _ z = Ongoing
 
 zombiePosCheck :: [Zombie] -> State
-zombiePosCheck zombies | any (\z -> getXZombie z <= 0) zombies = Lost
+zombiePosCheck zombies | any (\z -> (fst $ zombiepos z) <= 0) zombies = Lost
                        | otherwise = Ongoing
 
 -- | calculates total amount of energy, uses checkSunflower function ()
@@ -99,7 +99,7 @@ spawn t = concatMap (createZombies t) . getCurrentPhaseSpawns
 createZombies :: Time -> Spawn -> [Zombie]
 createZombies time (Spawn r l zombies) | any ((==) time . (*60) ) r = concatMap putZombieOnLane l
                                        | otherwise = []
- where putZombieOnLane lane = map (\z -> z {zombiepos=(getXZombie z,lane-1)} ) zombies
+ where putZombieOnLane lane = map (\z -> z {zombiepos=(fst $ zombiepos z,lane-1)} ) zombies
 
 -- | use Time to filter Phases that ended
 filterPhases :: Time -> [Phases] -> [Phases]
@@ -111,7 +111,7 @@ filterPhases t p | length p > 1 = del (p !! 1)
 
 getCurrentPhaseSpawns :: [Phases] -> [Spawn]
 getCurrentPhaseSpawns [] = []
-getCurrentPhaseSpawns h = getSpawns $ head h
+getCurrentPhaseSpawns h = phaseSpawns $ head h
 
 
 
