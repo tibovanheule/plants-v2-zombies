@@ -15,8 +15,8 @@ import Game
 
 main :: IO ()
 main = do args <- getArgs
-          doesFileExist  (head args) >>= \x -> when (not x) (die "level file not found")
-          doesFileExist  (last args) >>= \x -> when (not x) (die "defence file not found")
+          doesFileExist  (head args) >>= flip unless (die "level file not found")
+          doesFileExist  (last args) >>= flip unless (die "defence file not found")
           contentLevel <- readFile (head args)
           let level = getLevel contentLevel
           case level of
@@ -25,7 +25,7 @@ main = do args <- getArgs
           contentDefence <- readFile (last args)
           let defence = getDefence contentDefence
           case defence of
-                (Left err) -> print "Error parsing Defence" >> hPutStrLn stderr err  >> exitWith (ExitFailure 2 )
+                (Left err) -> print "Error parsing Defence" >> hPutStrLn stderr err >> exitWith (ExitFailure 2 )
                 _ -> print "Successfully parsed defence"
           let leveldef = (head $ rights [level]) {plants=head $ rights [defence]}
           let game = createGame leveldef
@@ -42,7 +42,7 @@ runTest game = case getState game of
 
 -- | Give the world a time tick, then let runtest decide if a tick is again needed
 tick :: World -> IO()
-tick w@(World _ (Just _) _ _ _) = (runTest $ changeWorld w)
+tick w@(World _ (Just _) _ _ _) = runTest $ changeWorld w
 tick (World _ Nothing _ _ _) = die "ERROR, no level"
 
 -- | Call parser en parse defence file contents using setupparser

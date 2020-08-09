@@ -20,11 +20,11 @@ main :: IO ()
 main = do
           args <- getArgs
           --- THESE ARE DEBUGGING OPTIONS FOR more info when running the program (As described in README)
-          let [debug,time, events, exit] = map (\x -> elem x args) ["debug","time", "events", "exit"]
+          let [debug,time, events, exit] = map (`elem` args) ["debug","time", "events", "exit"]
           -- Haal programma argumenten op.
           fp <- head <$> getArgs
           -- Bestaat de directory.
-          doesDirectoryExist fp >>= \x -> when (not x) (die "directory not found")
+          doesDirectoryExist fp >>= flip unless (die "directory not found")
           -- Zoek in de map alle level files.
           contents <- getDirFilesPaths fp
           -- DEBUG print
@@ -40,7 +40,7 @@ main = do
           when debug (print "Levels loaded")
 
           -- DEBUG we only want the parsing info
-          when exit (exitSuccess)
+          when exit exitSuccess
           -- Start GUI
           images <- readImages
           graphic time events images $ createPossibleGame (rights parsedFiles)
@@ -49,7 +49,7 @@ main = do
 getDirFilesPaths :: FilePath -> IO [FilePath]
 getDirFilesPaths fp = map ((fp ++ "/") ++) . filter check  <$> getDirectoryContents fp
                       where check x = isfile x && islevelfile x
-                            isfile x = notElem x [".",".."]
+                            isfile = flip notElem [".",".."]
                             islevelfile x = drop (length x - 9) x  == ".level.in"
 
 -- | Convert array of filepaths to array of parsed levels.
@@ -58,7 +58,7 @@ readLevelFiles = mapM readLevelFile
 
 -- | Parse filepath to parsed level.
 readLevelFile :: FilePath -> IO (Either Error Level)
-readLevelFile file = readFile file >>= return . getLevel
+readLevelFile file = getLevel <$> readFile file
 
 -- | Call parser en parse level file contents using levelparser
 getLevel :: String -> Either Error Level
