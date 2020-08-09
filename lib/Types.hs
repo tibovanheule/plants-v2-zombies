@@ -73,6 +73,11 @@ data Level = Level { title :: String
                    , chosenplant :: Maybe PlantType
 } deriving (Show)
 
+data Map = Map { wall :: [(Coordinate,Coordinate)]
+                   , homes :: [(Coordinate,Char)]
+                   , graves :: [(Coordinate,Char)]
+} deriving (Show)
+
 -- | World Data type, keeps all level options (as read by the parser) and keep state
 data World = World {
                      -- time keeps
@@ -83,7 +88,15 @@ data World = World {
                    , currlevel :: CurrLevel
                    } deriving (Show)
 
-
+data Images = Images {
+                citizenimage :: Picture ,
+                dogimage :: Picture ,
+                farmerimage :: Picture ,
+                grassimage :: Picture ,
+                peashooterimage :: Picture ,
+                sunflowerimage :: Picture ,
+                walnutimage :: Picture
+}
 
 
 
@@ -159,3 +172,4 @@ getEnd = (*60) . getTimePhase . last
 
 getDamage :: Pea -> Damage
 getDamage (Pea _ _ d _) = d
+

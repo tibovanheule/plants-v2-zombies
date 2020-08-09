@@ -2,6 +2,7 @@
 module Game where
 import           Types
 import Debug.Trace
+import Data.Maybe (isJust)
 changeWorld :: World -> World
 changeWorld (World time (Just l@(Level _ _ _ z p phases en _)) _ levels currlevel) = World (time+1) level newState levels currlevel
                                          where zom =  map (actZombie p) ((dead z) ++ spawn time phases)
@@ -14,7 +15,7 @@ changeWorld (World time (Just l@(Level _ _ _ z p phases en _)) _ levels currleve
 
 -- | add a plant to a level
 addplant :: Level -> Coordinate -> Level
-addplant l c@(x,y) | energy(l)-3 > 0  &&  isCoorTaken =  l { plants=plant ++ plants(l), energy = energy(l)-3}
+addplant l c@(x,y) | energy(l)-3 > 0  && isJust (chosenplant(l)) &&  isCoorTaken =  l { plants=plant ++ plants(l), energy = energy(l)-3}
                    | otherwise = l
  where isCoorTaken = not $ any check (plants(l))
        check (Plant _ _ (x',y') _  _ _) = (x == x') && (y == y')
@@ -80,7 +81,7 @@ shoot p@(Plant Sunflower _ _ t _ _ ) | t > 180 = p {lastshot=1}
                                      | otherwise = p {lastshot=lastshot(p)+1}
 shoot p@(Plant Peashooter _ _ t _ _ ) | t == 120 = p {lastshot=0,shots=peas (plantpos(p)) ++ shots(p)}
                                       | otherwise =  p {lastshot=lastshot(p)+1}
-schoot p = p
+shoot p = p
 
 peas :: Coordinate -> [Pea]
 peas c = map (createPea c) [left,right,up,down]

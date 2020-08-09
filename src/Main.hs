@@ -12,6 +12,8 @@ import System.FilePath
 import Graphical
 import LevelParser
 import Parser
+import Graphics.Gloss.Juicy
+import Data.Maybe
 
 -- Ongeldige bestanden mag je in deze modus gewoon negeren.
 main :: IO ()
@@ -30,15 +32,18 @@ main = do
           -- Parse all level files
           parsedFiles <-  readLevelFiles contents
           -- DEBUG print
-          when debug (print $ rights parsedFiles)
+          when debug (print parsedFiles)
+
           -- Are there any successfully parsed files?
-          case parsedFiles of
-                 [] -> die "No readably files"
-                 _ ->  when debug (print "Levels loaded")
+          when (null $ rights parsedFiles) (die "No readably files")
+          -- DEBUG
+          when debug (print "Levels loaded")
+
           -- DEBUG we only want the parsing info
           when exit (exitSuccess)
           -- Start GUI
-          graphic time events $ createPossibleGame (rights parsedFiles)
+          images <- readImages
+          graphic time events images $ createPossibleGame (rights parsedFiles)
 
 -- | Get all FilePaths of the files in a directory.
 getDirFilesPaths :: FilePath -> IO [FilePath]
@@ -58,3 +63,14 @@ readLevelFile file = readFile file >>= return . getLevel
 -- | Call parser en parse level file contents using levelparser
 getLevel :: String -> Either Error Level
 getLevel =  parseStatement levelParser
+
+readImages :: IO Images
+readImages = do
+                citizen <- loadJuicyPNG "images/citizen.png"
+                dog <- loadJuicyPNG "images/dog.png"
+                farmer <- loadJuicyPNG "images/farmer.png"
+                grass <- loadBMP "images/grass copy.bmp"
+                pea <- loadJuicyPNG "images/peashooter.png"
+                sunflower <- loadJuicyPNG "images/sunflower.png"
+                walnut <- loadJuicyPNG "images/walnut.png"
+                return (Images (fromJust citizen) (fromJust dog) (fromJust farmer) grass (fromJust pea) (fromJust sunflower) (fromJust  walnut))

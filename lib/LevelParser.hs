@@ -1,7 +1,8 @@
 module LevelParser (levelParser) where
 import Parser
-import Data.Char (isDigit, isAlpha)
+import Data.Char (isDigit, isAlpha, isHexDigit, isUpper, isLower)
 import Types
+import Control.Monad
 {- for reference
 some = 1 of meer
 many = 0 of meer
@@ -28,28 +29,32 @@ difficultyParser :: Parser Float
 difficultyParser = do token '('
                       f <- some $ digitParser <|> token '.'
                       token ')'
+                      let diff = read f :: Float
+                      when ( diff < 0 || diff > 1) (geefError "Invalid difficulty: schould be between 0 and 1.")
                       return (read f:: Float)
 
 -- | skip a comma and whitespace
-kommasep :: Parser a -> Parser a
-kommasep p = (many $ token ',' <|> token '\t' <|> token ' ') >> p
+kommasep :: Parser String
+kommasep = many $ token ',' <|> token '\t' <|> token ' '
 
 -- | parse a list of seeds
 seedsParser :: Parser [PlantType]
-seedsParser = do f <- seedParser
-                 l <- many (kommasep seedParser)
-                 return $ f:l
+seedsParser = many seedParser >>= return
 
 -- | parse one seed
 seedParser :: Parser PlantType
-seedParser  = (string "Sunflower" <|> string "Peashooter" <|> string "Walnut") >>= \x -> return (read x ::PlantType)
+seedParser  = kommasep >> (string "Sunflower" <|> string "Peashooter" <|> string "Walnut") >>= \x -> return (read x ::PlantType)
 
 -- | Parse timestamp and return total of seconds.
 timeParser :: Parser Time
 timeParser = do minutes <- some digitParser
                 token ':'
                 seconds <- some digitParser
-                return (((read minutes::Float) *60) + read seconds::Float)
+                let min = read minutes :: Float
+                    sec = read seconds :: Float
+                when (sec < 0 || sec > 59) (geefError "Invalid timestamp: seconds must be between 0 and 59.")
+                when (min < 0 || min > 99) (geefError "Invalid timestamp: minutes must be between 0 and 59.")
+                return ((min *60) + sec)
 
 -- | Parse a Zombie Phase
 zombiePhaseParser :: Parser PhaseType
@@ -193,12 +198,37 @@ spawnParser = do whiteParser
                        "Bucket" -> return (Spawn [0] [] [])
                        _ -> geefError "Not in case"
 
+
+mapParser :: Parser Map
+mapParser = do line1 <- maplineParser
+               endlineParser
+               line2 <- maplineParser
+               endlineParser
+               line3 <- maplineParser
+               endlineParser
+               line4 <- maplineParser
+               endlineParser
+               line5 <- maplineParser
+               endlineParser
+               line6 <- maplineParser
+               endlineParser
+               return (Map [] [] [] )
+
+maplineParser :: Parser Map
+maplineParser = do endlineParser
+                   cells <- many $ hex <|> token 'X' <|> grave
+                   return (Map [] [] [] )
+ where hex = spot (\x -> isHexDigit x && isLower x)
+       grave = spot isUpper
+
 -- | Parse a level
 levelParser :: Parser Level
 levelParser = do title <- titleParser
                  diff <- difficultyParser
                  endlineParser
                  seeds <- seedsParser
+                 endlineParser
+                 -- map <- mapParser
                  endlineParser
                  phases <- some phaseParser
                  return $ Level title diff seeds [] [] phases 10 Nothing
