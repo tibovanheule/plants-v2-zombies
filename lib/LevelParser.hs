@@ -16,9 +16,13 @@ letterParser = spot isAlpha
 symbolParser :: Parser Char
 symbolParser = token '!' <|> token '&' <|> token '?'
 
--- | Parse one whitespace skip the rest be
+-- | Parse whitespace
 whiteParser :: Parser String
 whiteParser = many $ token '\t' <|> token ' '
+
+-- | Parse whitespace, endline and then whitespace
+whiteEndWhiteParser :: Parser String
+whiteEndWhiteParser = whiteParser >> endlineParser >> whiteParser
 
 -- | Parse title of level
 titleParser :: Parser String
@@ -39,7 +43,7 @@ kommasep = many $ token ',' <|> token '\t' <|> token ' '
 
 -- | parse a list of seeds
 seedsParser :: Parser [PlantType]
-seedsParser = many seedParser >>= return
+seedsParser = many seedParser
 
 -- | parse one seed
 seedParser :: Parser PlantType
@@ -125,9 +129,7 @@ afterParser = do time <- some $ digitParser <|> token '.'
                  string "seconds"
                  whiteParser
                  token '{'
-                 whiteParser
-                 endlineParser
-                 whiteParser
+                 whiteEndWhiteParser
                  nested <- optional spawnParser
                  let runs = case nested of
                                 Nothing -> [read time ::Float]
@@ -138,11 +140,9 @@ afterParser = do time <- some $ digitParser <|> token '.'
                      zombies = case nested of
                                      Nothing -> []
                                      Just t -> getZombie t
-                 whiteParser
-                 endlineParser
+                 whiteEndWhiteParser
                  token '}'
-                 whiteParser
-                 endlineParser
+                 whiteEndWhiteParser
                  return (Spawn runs lanes zombies)
 
 everySpawnParser :: Parser Spawn
@@ -158,9 +158,7 @@ everySpawnParser = do whiteParser
                       string "times"
                       whiteParser
                       token '{'
-                      whiteParser
-                      endlineParser
-                      whiteParser
+                      whiteEndWhiteParser
                       nested <- optional spawnParser
                       let run = [read times :: Int] >>= \timesInt -> [read sec ::Float] >>= \secInt -> take timesInt [0,secInt..]
                           runs = case nested of
@@ -172,22 +170,16 @@ everySpawnParser = do whiteParser
                           zombies = case nested of
                                          Nothing -> []
                                          Just t -> getZombie t
-                      whiteParser
-                      endlineParser
-                      whiteParser
+                      whiteEndWhiteParser
                       token '}'
                       endlineParser
                       return (Spawn runs lanes zombies)
 
 spawnParser :: Parser Spawn
-spawnParser = do whiteParser
-                 endlineParser
-                 whiteParser
+spawnParser = do whiteEndWhiteParser
                  -- TODO vervang door gewone orp  rser
                  whatHappend <-  string "on" <|> string "after" <|> string "every" <|> string "Bucket" <|> string "Citizen" <|> string "Farmer" <|> string "Dog"
-                 whiteParser
-                 endlineParser
-                 whiteParser
+                 whiteEndWhiteParser
                  case whatHappend of
                        "on" -> onLaneParser
                        "after" -> afterParser

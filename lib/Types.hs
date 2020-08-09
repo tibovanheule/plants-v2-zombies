@@ -15,10 +15,10 @@ type CurrLevel = Int
 type Direction = Coordinate
 
 left, right, up, down :: Speed -> Direction
-left speed = (-(speed),0)
+left speed = (-speed,0)
 right speed = (speed,0)
 up speed = (0,speed)
-down speed= (0,(-speed))
+down speed= (0,-speed)
 
 data State = Ongoing | Won | Lost | Menu
              deriving (Eq, Show, Read)
@@ -162,14 +162,10 @@ getSpawns (Phases _ _ s) = s
 -- | Get the next phase
 getNextPhase :: [Phases] -> Phases
 getNextPhase [] = Phases 0 EndPhase []
-getNextPhase (h:[]) = h
+getNextPhase [h]= h
 getNextPhase (_:t) = head t
 
 -- | Time of the EndPhase
 getEnd :: [Phases] -> Float
 getEnd = (*60) . getTimePhase . last
  where getTimePhase (Phases t _ _ ) = t
-
-getDamage :: Pea -> Damage
-getDamage (Pea _ _ d _) = d
-

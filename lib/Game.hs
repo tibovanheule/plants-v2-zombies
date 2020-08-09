@@ -5,7 +5,7 @@ import Debug.Trace
 import Data.Maybe (isJust)
 changeWorld :: World -> World
 changeWorld (World time (Just l@(Level _ _ _ z p phases en _)) _ levels currlevel) = World (time+1) level newState levels currlevel
-                                         where zom =  map (actZombie p) ((dead z) ++ spawn time phases)
+                                         where zom =  map (actZombie p) (dead z ++ spawn time phases)
                                                filteredPhases = filterPhases time phases
                                                plant = movePeas z $ map shoot p
                                                currentState = head filteredPhases
@@ -15,11 +15,16 @@ changeWorld (World time (Just l@(Level _ _ _ z p phases en _)) _ levels currleve
 
 -- | add a plant to a level
 addplant :: Level -> Coordinate -> Level
-addplant l c@(x,y) | energy(l)-3 > 0  && isJust (chosenplant(l)) &&  isCoorTaken =  l { plants=plant ++ plants(l), energy = energy(l)-3}
+addplant l c@(x,y) | energy l - cost > 0  && isJust (chosenplant l) &&  isCoorTaken =  l { plants=plant ++ plants l, energy = energy l - cost}
                    | otherwise = l
- where isCoorTaken = not $ any check (plants(l))
+ where isCoorTaken = not $ any check (plants l)
        check (Plant _ _ (x',y') _  _ _) = (x == x') && (y == y')
-       plant = case chosenplant(l) of
+       cost = case chosenplant l of
+                   Just Walnut -> 6
+                   Just Peashooter -> 6
+                   Just Sunflower -> 3
+                   Nothing -> 0
+       plant = case chosenplant l of
                    Just Walnut -> [createWalnut c]
                    Just Peashooter -> [createPeaShooter c]
                    Just Sunflower -> [createSunflower c]
@@ -33,9 +38,9 @@ dead = filter (\(Zombie _ l _ _ _) -> l > 0)
 actZombie :: [Plant] -> Zombie -> Zombie
 actZombie plants z@(Zombie _ life c@(x,y) _ speed) = z { zombiepos=pos, zombielife=newlife }
                where isHit (Pea (x',y') _ _ _) = abs(x - x') <= 0.5 && abs(y - y') <= 0.5
-                     peas = filter (isHit) $ concatMap getPeas plants
+                     peas = filter isHit $ concatMap getPeas plants
                      newlife | null peas =  life
-                             | otherwise = sum $ map (((-) life) . getDamage) peas
+                             | otherwise = sum $ map ((life -) . peadamage) peas
                      pos = case zombieBeforePlant plants (x-1.0,y) of
                                 [] -> (x-(speed/60),y)
                                 p -> c
@@ -68,7 +73,7 @@ zombiePosCheck zombies | any (\z -> getXZombie z <= 0) zombies = Lost
 
 -- | calculates total amount of energy, uses checkSunflower function ()
 calcEnergy :: Energy -> [Plant] -> Energy
-calcEnergy en p = en + (sum $ map checkSunflower p)
+calcEnergy en p = en + sum (map checkSunflower p)
 
 
 -- | check if 3 seconds has passed, and add energy if needed
@@ -78,9 +83,9 @@ checkSunflower _ = 0
 
 shoot :: Plant -> Plant
 shoot p@(Plant Sunflower _ _ t _ _ ) | t > 180 = p {lastshot=1}
-                                     | otherwise = p {lastshot=lastshot(p)+1}
-shoot p@(Plant Peashooter _ _ t _ _ ) | t == 120 = p {lastshot=0,shots=peas (plantpos(p)) ++ shots(p)}
-                                      | otherwise =  p {lastshot=lastshot(p)+1}
+                                     | otherwise = p {lastshot=lastshot p + 1}
+shoot p@(Plant Peashooter _ _ t _ _ ) | t == 120 = p {lastshot=0,shots=peas (plantpos p) ++ shots p}
+                                      | otherwise =  p {lastshot=lastshot p + 1}
 shoot p = p
 
 peas :: Coordinate -> [Pea]
