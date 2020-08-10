@@ -30,4 +30,5 @@ https://hackage.haskell.org/package/base-4.14.0.0/docs/System-Exit.html
 https://github.com/lspitzner/brittany
 ### Screnshot save
 https://hackage.haskell.org/package/gloss-export-0.1.0.2/docs/Graphics-Gloss-Export-PNG.html
-
+### count functie in parser (x aantal keer)
+https://hackage.haskell.org/package/parsers-0.12.10/docs/src/Text.Parser.Combinators.html#count

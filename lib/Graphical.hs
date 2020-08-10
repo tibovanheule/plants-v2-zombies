@@ -25,7 +25,7 @@ import           GlossBanana
 import           Reactive.Banana.Combinators
 import           Reactive.Banana.Frameworks
 import           Reactive.Banana
-import           Graphics.Gloss.Data.Extent
+import           Extent
 import           Control.Monad
 import           System.IO.Unsafe
 import           Debug.Trace
@@ -51,7 +51,7 @@ gridCoors = concatMap (flip zip [0..5] . replicate 9) [0..8]
 gridExtent :: [(Extent,Coordinate)]
 gridExtent = zip (map (extentLoc . toGloss) gridCoors) gridCoors
  where halfSchaal = schaal / 2
-       extentLoc (x,y) = makeExtent (round $ y+halfSchaal)  (round $ y-halfSchaal) (round $ x+halfSchaal)  (round $ x-halfSchaal)
+       extentLoc (x,y) = makeExtent (y+halfSchaal)  (y-halfSchaal) (x+halfSchaal)  (x-halfSchaal)
        toGloss (x, y) = (convert breedte x,negate $ convert hoogte y)
        convert bofh xofy = (-halfSchaal * bofh) + halfSchaal + xofy * schaal
 
@@ -206,7 +206,7 @@ clickable ex string = color azure bg <> color black fg
  where
   bg     = polygon (cornerPoints ex)
   fg     = translate x y $ uscale 0.1 $ translate (-150) (-50) $ text string
-  (x, y) = c2p (centerCoordOfExtent ex)
+  (x, y) = centerCoordOfExtent ex
 
 coorsToGloss :: Coordinate -> Picture -> Picture
 coorsToGloss c@(x, y) = translate (convert breedte x) (negate $ convert hoogte y)
@@ -217,13 +217,10 @@ coorsToGloss c@(x, y) = translate (convert breedte x) (negate $ convert hoogte y
 uscale :: Float -> Picture -> Picture
 uscale v = scale v v
 
-c2p :: Coord -> Point
-c2p (x, y) = (fromIntegral x, fromIntegral y)
-
 
 -- | take the coordinates of the corners of the extent and convert them to points
 cornerPoints :: Extent -> [Point]
-cornerPoints ex = map c2p [(w, n), (e, n), (e, s), (w, s)]
+cornerPoints ex = [(w, n), (e, n), (e, s), (w, s)]
   where (n, s, e, w) = takeExtent ex
 
 -- | Give the world a time tick

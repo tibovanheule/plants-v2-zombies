@@ -1,16 +1,25 @@
 -- | This Parser module contains the basic parser functions and the implementation of the Parser.
-module Parser (Parser, token, string, some, many, optional, empty, spot, orParser, geefError, parseStatement, (<|>), parseWhiteSpace, digitParser, endlineParser) where
+module Parser (Parser,count, endBy, token, string, some, many, optional, empty, spot, orParser, geefError, parseStatement, (<|>), parseWhiteSpace, digitParser, endlineParser) where
 import           Control.Applicative (Alternative (..), many, optional, some, (<|>))
 import           Control.Monad       (MonadPlus (..), ap, liftM, guard)
 import           Data.Either         (isLeft, isRight)
 import Types
 import Data.Char (isDigit, isAlpha)
+import Data.Traversable (sequenceA)
 
 newtype Parser a = Parser (String -> [(Either Error a, String)])
 
 -- | Use the parser to parse a string
 parse :: Parser a -> String -> [(Either Error a, String)]
 parse (Parser p) = p
+
+-- | Parse n times (see readme for reference)
+count :: Applicative m => Int -> m a -> m [a]
+count n p | n <= 0    = pure []
+          | otherwise = sequenceA (replicate n p)
+
+endBy :: Alternative m => m a -> m sep -> m [a]
+endBy p sep = many (p <* sep)
 
 -- | Parse a string a with a given parser and give an either back (either error or succes)
 parseStatement :: Parser a -> String -> Either Error a

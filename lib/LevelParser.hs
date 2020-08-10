@@ -74,11 +74,9 @@ endPhaseParser = return EndPhase
 
 -- | Parse all Phases and there spawns
 phaseParser :: Parser Phases
-phaseParser = do whiteParser
-                 endlineParser
+phaseParser = do whiteEndWhiteParser
                  timestamp <- timeParser
-                 endlineParser
-                 whiteParser
+                 whiteEndWhiteParser
                  optional $ token '-'
                  whiteParser
                  name <- orParser [zombiePhaseParser,buildingPhaseParser,endPhaseParser]
@@ -87,10 +85,7 @@ phaseParser = do whiteParser
 
 -- | Parses sentence like "home A"
 laneParser :: Parser [Lane]
-laneParser =  do string "home"
-                 whiteParser
-                 lane <- digitParser
-                 return [read [lane] ::Float]
+laneParser = string "home" >> whiteParser >> digitParser >>= \lane -> return [read [lane] ::Float]
 
 -- | Parses sentences like " on every home"
 everyParser :: Parser [Lane]
@@ -177,7 +172,6 @@ everySpawnParser = do whiteParser
 
 spawnParser :: Parser Spawn
 spawnParser = do whiteEndWhiteParser
-                 -- TODO vervang door gewone orp  rser
                  whatHappend <-  string "on" <|> string "after" <|> string "every" <|> string "Bucket" <|> string "Citizen" <|> string "Farmer" <|> string "Dog"
                  whiteEndWhiteParser
                  case whatHappend of
@@ -198,31 +192,23 @@ bucketParser = do what <- string "Citizen" <|> string "Farmer" <|> string "Dog"
                                     "Farmer" -> createFarmer
                   return (Spawn [0] [] [zombie { zombielife = zombielife zombie + 2 }])
 
-
 mapParser :: Parser Map
-mapParser = do line1 <- maplineParser
-               line2 <- maplineParser
-               line3 <- maplineParser
-               line4 <- maplineParser
-               line5 <- maplineParser
-               line6 <- maplineParser
+mapParser = do lines <- count 6 maplineParser
                return (Map [] [] [] )
 
 maplineParser :: Parser Map
-maplineParser = do cell1 <- cel
-                   cell2 <- cel
-                   cell3 <- cel
-                   cell4 <- cel
-                   cell5 <- cel
-                   cell6 <- cel
-                   cell7 <- cel
-                   cell8 <- cel
-                   cell9 <- cel
+maplineParser = do cells <- count 9 cell
                    endlineParser
-                   return (Map [] [] [] )
- where cel = hex <|> token 'X' <|> grave
+                   return  (Map [] [] [] )
+ where cell = hex <|> token 'X' <|> grave
        hex = spot (\x -> isHexDigit x && (isLower x || isDigit x))
        grave = spot isUpper
+
+{-cellToMap :: String -> Map -> Map
+cellToMap [] map = map
+cellToMap [x] map = (map2 x)
+cellToMap (x:xs) map = cellToMap xs (map2 x)
+ where map2 x | isHexDigit x && (isLower x || isDigit x) = map {  }-}
 
 -- | Parse a level
 levelParser :: Parser Level
