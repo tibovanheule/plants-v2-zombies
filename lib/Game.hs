@@ -3,11 +3,14 @@ module Game where
 import           Types
 import Debug.Trace
 import Data.Maybe (isJust)
+import Data.List
+import Data.Function
+
 changeWorld :: World -> World
 changeWorld (World time (Just l@(Level _ _ _ z p phases en _)) _ levels currlevel) = World (time+1) level newState levels currlevel
                                          where zom =  map (actZombie p) (dead z ++ spawn time phases)
                                                filteredPhases = filterPhases time phases
-                                               plant = movePeas z $ map shoot p
+                                               plant = movePeas z $ map (shoot z) p
                                                currentState = head filteredPhases
                                                newState = isWon time currentState z
                                                level = Just (l { zombies=zom, phase= filteredPhases, plants=plant, energy=calcEnergy en p})
@@ -81,16 +84,20 @@ checkSunflower :: Plant -> Energy
 checkSunflower (Plant Sunflower _ _ 180 _ _) = 1
 checkSunflower _ = 0
 
-shoot :: Plant -> Plant
-shoot p@(Plant Sunflower _ _ t _ _ ) | t > 180 = p {lastshot=1}
-                                     | otherwise = p {lastshot=lastshot p + 1}
-shoot p@(Plant Peashooter _ _ t _ _ ) | t == 120 = p {lastshot=0,shots=peas (plantpos p) ++ shots p}
-                                      | otherwise =  p {lastshot=lastshot p + 1}
-shoot p = p
+shoot :: [Zombie] -> Plant -> Plant
+shoot _ p@(Plant Sunflower _ _ t _ _ ) | t > 180 = p {lastshot=1}
+                                       | otherwise = p {lastshot=lastshot p + 1}
+shoot z p@(Plant Peashooter _ _ t _ _ ) | t == 120 && null z = p {lastshot=0}
+                                        | t == 120 = p {lastshot=0,shots=peas z (plantpos p) : shots p}
+                                        | otherwise =  p {lastshot=lastshot p + 1}
+shoot _ p = p
 
--- | Converts a coordinate to a array of Peas (in all direction)
-peas :: Coordinate -> [Pea]
-peas c = map (createPea c) [left,right,up,down]
+-- | Find closest zombie and ATTACKS, DIE ZOMBIE, DIE ZOMBIE
+peas :: [Zombie] -> Coordinate -> Pea
+peas z c = createPea c $ direction c zombie
+  where direction (x,y) (x',y') = ((x'-x)/60,(y'-y)/60)
+        zombie = zombiepos $ head $ sortBy (compare `on` (euclidian c . zombiepos) ) z
+        euclidian (x,y) (x',y') = abs(x'-x) + abs (y'-y)
                                  
 -- | Get all spawns of zombies out of a phase
 spawn :: Time -> [Phases] -> [Zombie]

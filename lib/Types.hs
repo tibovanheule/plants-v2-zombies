@@ -14,12 +14,6 @@ type Energy = Int
 type CurrLevel = Int
 type Direction = Coordinate
 
-left, right, up, down :: Speed -> Direction
-left speed = (-speed,0)
-right speed = (speed,0)
-up speed = (0,speed)
-down speed= (0,-speed)
-
 -- |Diffrent state of a game
 data State = Ongoing | Won | Lost | Menu
              deriving (Eq, Show, Read)
@@ -128,8 +122,8 @@ createPeaShooter c = Plant Peashooter 1 c 0 [] 6
 createWalnut :: Coordinate -> Plant
 createWalnut c = Plant Walnut 5 c 0 [] 6
 
-createPea :: Coordinate -> (Speed -> Direction) -> Pea
-createPea c d = Pea c 0.5 1 (d (0.5/60))
+createPea :: Coordinate -> Direction -> Pea
+createPea c d = Pea c 0.5 1 d
 
 -- | creeër een spel with one level (selected level is that given level and is a Just)
 createGame :: Level -> World

@@ -2,8 +2,7 @@
 ## Documentation
 The documentation of this project can be found at https://tibovanheule.space/plantenvszombies/
 
-
-## Interface options
+## Extra Interface options
 ### Options when starting with gui
 There are a few extra options for debugging purposes.
  - debug = Output of the parser will be printed on standard output. 

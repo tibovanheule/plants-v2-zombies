@@ -193,22 +193,30 @@ bucketParser = do what <- string "Citizen" <|> string "Farmer" <|> string "Dog"
                   return (Spawn [0] [] [zombie { zombielife = zombielife zombie + 2 }])
 
 mapParser :: Parser Map
-mapParser = do lines <- count 6 maplineParser
+mapParser = do line1 <- maplineParser 0
+               line2 <- maplineParser 1
+               line3 <- maplineParser 2
+               line4 <- maplineParser 3
+               line5 <- maplineParser 4
+               line6 <- maplineParser 5
                return (Map [] [] [] )
 
-maplineParser :: Parser Map
-maplineParser = do cells <- count 9 cell
-                   endlineParser
-                   return  (Map [] [] [] )
+maplineParser :: Float -> Parser Map
+maplineParser y = do cells <- count 9 cell
+                     endlineParser
+                     cellToMap 6 cells (Map [] [] [])
+                     return  (Map [] [] [] )
  where cell = hex <|> token 'X' <|> grave
        hex = spot (\x -> isHexDigit x && (isLower x || isDigit x))
        grave = spot isUpper
 
-{-cellToMap :: String -> Map -> Map
-cellToMap [] map = map
-cellToMap [x] map = (map2 x)
-cellToMap (x:xs) map = cellToMap xs (map2 x)
- where map2 x | isHexDigit x && (isLower x || isDigit x) = map {  }-}
+cellToMap :: Float -> String -> Map -> Map
+cellToMap _ [] map = map
+cellToMap y [x] map = (map2 x (0,y))
+cellToMap y s@(x:xs) map = cellToMap xs (map2 x (length s - 1, y))
+ where map2 x c | isHexDigit x && (isLower x || isDigit x) = map { walls = newwalls x c }
+       newwalls x c = map (add c) [(1,0),(0,1),(-1,0),(0,-1)]
+                       where add (x,y) (x',y') = (x+x',y+y')
 
 -- | Parse a level
 levelParser :: Parser Level
