@@ -3,6 +3,9 @@ import Parser
 import Data.Char (isDigit, isAlpha, isHexDigit, isUpper, isLower)
 import Types
 import Control.Monad
+import Data.Maybe
+import Numeric (readHex)
+import Text.Printf (printf)
 {- for reference
 some = 1 of meer
 many = 0 of meer
@@ -193,30 +196,37 @@ bucketParser = do what <- string "Citizen" <|> string "Farmer" <|> string "Dog"
                   return (Spawn [0] [] [zombie { zombielife = zombielife zombie + 2 }])
 
 mapParser :: Parser Map
-mapParser = do line1 <- maplineParser 0
-               line2 <- maplineParser 1
-               line3 <- maplineParser 2
-               line4 <- maplineParser 3
-               line5 <- maplineParser 4
-               line6 <- maplineParser 5
-               return (Map [] [] [] )
+mapParser = do lines <- traverse maplineParser [0..5] -- Parse 6 times and give argument
+               return $ foldl mergeMaps (Map [] [] []) lines
+
+mergeMaps :: Map -> Map -> Map
+mergeMaps x y = Map (wall x ++ wall y) (homes x ++ homes y) (graves x ++ graves y)
 
 maplineParser :: Float -> Parser Map
 maplineParser y = do cells <- count 9 cell
                      endlineParser
-                     cellToMap 6 cells (Map [] [] [])
-                     return  (Map [] [] [] )
+                     return  $ cellToMap 6 cells (Map [] [] [])
  where cell = hex <|> token 'X' <|> grave
        hex = spot (\x -> isHexDigit x && (isLower x || isDigit x))
        grave = spot isUpper
 
 cellToMap :: Float -> String -> Map -> Map
 cellToMap _ [] map = map
-cellToMap y [x] map = (map2 x (0,y))
-cellToMap y s@(x:xs) map = cellToMap xs (map2 x (length s - 1, y))
- where map2 x c | isHexDigit x && (isLower x || isDigit x) = map { walls = newwalls x c }
-       newwalls x c = map (add c) [(1,0),(0,1),(-1,0),(0,-1)]
-                       where add (x,y) (x',y') = (x+x',y+y')
+cellToMap y [x] map = map2 x (0,y) map
+cellToMap y s@(x:xs) map = cellToMap y xs (map2 x ( fromIntegral $ length s - 1, y) map)
+
+map2 :: Char -> (Float, Float) -> Map -> Map
+map2 x c mapp | isHexDigit x && (isLower x || isDigit x) = mapp { wall = wall mapp ++ newwalls x}
+              | x == 'X' || x == 'x' = mapp { homes = c:homes mapp}
+              | otherwise = mapp
+ where newwalls x = map (\x -> (c,add x c)) (binaryToDirection [(1.0,0.0),(0.0,1.0),(-1.0,0.0),(0.0,-1.0)] x) -- TODO controleer als alles overeen komt
+       add (x,y) (x',y') = (x+x',y+y')
+
+binaryToDirection :: [Coordinate] -> Char -> [Coordinate]
+binaryToDirection xs = map fst . filter ((==) '1'. snd) . zip xs . hexToBin
+ where hexToBin c = case readHex [c] of
+                           (x,""):_ -> printf "%04b" (x::Int)
+                           _       -> "0000"
 
 -- | Parse a level
 levelParser :: Parser Level
@@ -225,6 +235,6 @@ levelParser = do title <- titleParser
                  endlineParser
                  seeds <- seedsParser
                  endlineParser
-                 map <- mapParser
+                 levelmap <- mapParser
                  phases <- some phaseParser
-                 return $ Level title diff seeds [] [] phases 10 Nothing
+                 return $ Level title diff seeds [] [] phases 10 Nothing levelmap

@@ -140,7 +140,7 @@ drawMenu (World _ _ _ levels currentlevel) =
  levelToPic <> clickable extentNext "Next level (N)"  <> clickable extentStart "Start level (S)"
  where
   levelToPic = levelToPictures $ levels !! currentlevel
-  levelToPictures (Level title difficulty _ _ _ phase _ _) = translate (-200) 200 (uscale 0.1 (text title)) <>
+  levelToPictures (Level title difficulty _ _ _ phase _ _ _) = translate (-200) 200 (uscale 0.1 (text title)) <>
    translate (-200) 170 (uscale 0.1 (text ("diffculty: " ++ show difficulty) )) <>
    translate (-200) 140 (uscale 0.1 (text ("time: " ++ show (getEnd phase) )))
 
@@ -152,16 +152,16 @@ drawGame (World _ _ Lost _ _) _ = uscale 0.2 (text "Try again, you Lost") <> cli
 drawGame _ _ = blank
 
 grass :: Images -> Picture
-grass im = pictures $ map (`coorsToGloss` grassImage ) gridCoors
- where grassImage = scale (70/32) (70/32) $ grassimage im
+grass im = pictures $ map (`coorsToGloss` grassImage im ) gridCoors
+      where grassImage = scale (70/32) (70/32) . grassimage
 
 
 duration :: Level -> Time
-duration (Level _ _ _ _ _ p _ _) = getEnd p
+duration (Level _ _ _ _ _ p _ _ _) = getEnd p
 
 -- | For a given level, draw the zombies
 drawZombies :: Level -> Images -> Picture
-drawZombies (Level _ _ _ z _ _ _ _) im = pictures $ map zombieToPicture z
+drawZombies l im = pictures $ map zombieToPicture $ zombies l
  where
   scaler = scale (40/153) (50/209)
   zombieToPicture ( Zombie Citizen _ coor _ _) = coorsToGloss coor (scaler $ citizenimage im)
@@ -171,7 +171,7 @@ drawZombies (Level _ _ _ z _ _ _ _) im = pictures $ map zombieToPicture z
 
 -- | For a given level, draw the plants
 drawPlants :: Level -> Images -> Picture
-drawPlants (Level _ _ _ _ p _ _ _) im = pictures $ map plantToPicture p ++ peas
+drawPlants (Level _ _ _ _ p _ _ _ _) im = pictures $ map plantToPicture p ++ peas
  where
   peas =  map peaToPicture $ concatMap shots p
   plantToPicture ( Plant typ _ coor _ _ _) = coorsToGloss coor (plantImage typ)
@@ -183,7 +183,7 @@ drawPlants (Level _ _ _ _ p _ _ _) im = pictures $ map plantToPicture p ++ peas
 
 -- | Draw the energy score and draw the store where plants can be bought.
 drawStore :: Level -> Images -> Picture
-drawStore (Level _ _ seeds z _ _ energy _) im = energytext <> store seeds
+drawStore (Level _ _ seeds z _ _ energy _ _) im = energytext <> store seeds
  where
   energytext = translate (-200) (-200) $ uscale 0.1 $ text $ "Energy: " ++ show energy
   store = pictures . map seedToStorePicture

@@ -5,9 +5,10 @@ import Debug.Trace
 import Data.Maybe (isJust)
 import Data.List
 import Data.Function
+import Data.Fixed (mod')
 
 changeWorld :: World -> World
-changeWorld (World time (Just l@(Level _ _ _ z p phases en _)) _ levels currlevel) = World (time+1) level newState levels currlevel
+changeWorld (World time (Just l@(Level _ _ _ z p phases en _ levelmap)) _ levels currlevel) = World (time+1) level newState levels currlevel
                                          where zom =  map (actZombie p) (dead z ++ spawn time phases)
                                                filteredPhases = filterPhases time phases
                                                plant = movePeas z $ map (shoot z) p
@@ -96,7 +97,7 @@ shoot _ p = p
 peas :: [Zombie] -> Coordinate -> Pea
 peas z c = createPea c $ direction c zombie
   where direction (x,y) (x',y') = ((x'-x)/60,(y'-y)/60)
-        zombie = zombiepos $ head $ sortBy (compare `on` (euclidian c . zombiepos) ) z
+        zombie = zombiepos $ minimumBy (compare `on` (euclidian c . zombiepos) ) z
         euclidian (x,y) (x',y') = abs(x'-x) + abs (y'-y)
                                  
 -- | Get all spawns of zombies out of a phase

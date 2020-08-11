@@ -1,5 +1,8 @@
 module Pathfinding where
 import qualified Data.PQueue.Prio.Min as PQ
+import qualified Data.HashSet as Set
+import qualified Data.HashMap.Strict as Map
+import Data.List (foldl')
 import Data.Maybe (fromJust)
 import Types
 
@@ -19,7 +22,7 @@ nowall current next = not ((current,next) `elem` walls || (next,current) `elem` 
 astarSearch :: Coordinate -> (Coordinate -> Bool) -> (Coordinate -> [(Coordinate, Int)]) -> (Coordinate -> Int) -> Maybe [Coordinate]
 astarSearch startNode isGoalNode nextNodeFn heuristic =
   astar (PQ.singleton (heuristic startNode) (startNode, 0))
-         [] (Map.singleton startNode 0) Map.empty
+         Set.empty (Map.singleton startNode 0) Map.empty
   where
     astar pq seen gscore tracks
       -- failed => return nothing
@@ -27,7 +30,7 @@ astarSearch startNode isGoalNode nextNodeFn heuristic =
       -- Success
       | isGoalNode node = Just ( getPath tracks node)
       -- Already seen
-      | node `elem` seen = astar pq' seen gscore tracks
+      | Set.member node seen = astar pq' seen gscore tracks
       -- Else expand the node and continue
       | otherwise = astar pq'' seen' gscore' tracks'
       where
@@ -36,14 +39,14 @@ astarSearch startNode isGoalNode nextNodeFn heuristic =
         -- Delete the node from open set
         pq' = PQ.deleteMin pq
         -- Add the node to the closed set
-        seen' =  setInsert node seen
+        seen' =  Set.insert node seen
         -- Find the successors (with their g and h costs) of the node
         -- which have not been seen yet
         successors =
           filter (\(s, g, _) ->
-                    not (s `elem` seen') &&
+                    not (Set.member s seen') &&
                       (not (s `Map.member` gscore)
-                        || g < (maplookup s $ gscore)))
+                        || g < (fromJust . Map.lookup s $ gscore)))
           $ successorsAndCosts node gcost
 
         -- Insert the successors in the open set
@@ -59,14 +62,5 @@ astarSearch startNode isGoalNode nextNodeFn heuristic =
       map (\(s, g) -> (s, gcost + g, heuristic s)) . nextNodeFn $ node
 
     -- If a Path is possible, construct it
-    getPath tracks node | Map.member node tracks = getPath tracks (maplookup node $ tracks) ++ [node] -- nod is meber of tracks
+    getPath tracks node | Map.member node tracks = getPath tracks (fromJust . Map.lookup node $ tracks) ++ [node] -- nod is meber of tracks
                         | otherwise = [node]
-
-maplookup :: Coordinate -> [(Coordinate,Int)] -> Int
-maplookup k m | mapmember k m = Just $ get k m
-              | otherwise = Nothing
-
-setInsert :: Coordinate -> [Coordinate] -> [Coordinate]
-setInsert node seen | node `elem` seen = seen
-                    | otherwise = (node:seen)
-

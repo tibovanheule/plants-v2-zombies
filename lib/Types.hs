@@ -70,10 +70,11 @@ data Level = Level { title :: String
                    , phase :: [Phases]
                    , energy :: Energy
                    , chosenplant :: Maybe PlantType
+                   , levelmap :: Map
 } deriving (Show)
 
 data Map = Map { wall :: [(Coordinate,Coordinate)]
-                   , homes :: [(Coordinate,Char)]
+                   , homes :: [Coordinate]
                    , graves :: [(Coordinate,Char)]
 } deriving (Show)
 
@@ -123,7 +124,7 @@ createWalnut :: Coordinate -> Plant
 createWalnut c = Plant Walnut 5 c 0 [] 6
 
 createPea :: Coordinate -> Direction -> Pea
-createPea c d = Pea c 0.5 1 d
+createPea c  = Pea c 0.5 1
 
 -- | creeër een spel with one level (selected level is that given level and is a Just)
 createGame :: Level -> World
