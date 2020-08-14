@@ -41,7 +41,7 @@ data Zombie = Zombie { zombietype   :: ZombieType
 
 -- | Data record for plants (stores: type, life, position,last shot pea,shot peas and the cost to buy a plant)
 data Plant = Plant { planttype   :: PlantType
-                  , plantxp :: Life
+                  , plantlife :: Life
                   , plantpos :: Coordinate
                   , lastshot :: Time
                   , shots :: [Pea]

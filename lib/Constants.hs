@@ -17,6 +17,9 @@ breedte = 9
 hoogte = 7
 halfSchaal = schaal / 2
 
+frequency :: Float
+frequency = 60
+
 -- | function to generate all possible grid locations
 gridCoors :: [Coordinate]
 gridCoors = concatMap (flip zip [0..5] . replicate 9) [0..8]
