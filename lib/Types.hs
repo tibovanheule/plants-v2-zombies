@@ -161,5 +161,4 @@ getNextPhase (_:t) = head t
 
 -- | Time of the EndPhase
 getEnd :: [Phases] -> Float
-getEnd = (*60) . getTimePhase . last
- where getTimePhase (Phases t _ _ ) = t
+getEnd = start . last
