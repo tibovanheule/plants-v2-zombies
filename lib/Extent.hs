@@ -3,7 +3,7 @@
 --   All Credits to the author!
 --   Included here so it could be edited (use of Float) and simplify a few modules in Graphical module
 --   Represents an integral rectangular area of the 2D plane.
-module Extent ( Extent , makeExtent , takeExtent , pointInExtent , centerCoordOfExtent ) where
+module Extent ( Extent , makeExtent , takeExtent , pointInExtent , centerCoordOfExtent, cornerPoints) where
 import Graphics.Gloss.Data.Point
 
 -- | A rectangular area of the 2D plane.
@@ -19,10 +19,8 @@ makeExtent
         -> Float  -- ^ x max (east)
         -> Float  -- ^ x min (west)
         -> Extent
-
 makeExtent n s e w | n >= s, e >= w = Extent n s e w
                    | otherwise = error "makeExtent: invalid extent"
-
 
 -- | Take the NSEW components of an extent.
 takeExtent :: Extent -> (Float, Float, Float, Float)
@@ -32,7 +30,11 @@ takeExtent (Extent n s e w)  = (n, s, e, w)
 pointInExtent :: Extent -> Point -> Bool
 pointInExtent (Extent n s e w) (x, y) = x >= w && x <= e     && y >= s && y <= n
 
-
 -- | Get the coordinate that lies at the center of an extent.
 centerCoordOfExtent :: Extent -> (Float, Float)
 centerCoordOfExtent (Extent n s e w) = ( w + (e - w)/ 2 , s + (n - s) /2)
+
+-- | take the coordinates of the corners of the extent
+cornerPoints :: Extent -> [Point]
+cornerPoints ex = [(w, n), (e, n), (e, s), (w, s)]
+  where (n, s, e, w) = takeExtent ex

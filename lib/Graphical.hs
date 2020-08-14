@@ -30,12 +30,11 @@ extentSunflower = makeExtent (-205) (-255) (-125) (-175)
 extentWalnut = makeExtent  (-205) (-255) (-75) (-125)
 extentPeashooter = makeExtent (-205) (-255) (-25) (-75)
 
-gridCoors :: [Coordinate]
-gridCoors = concatMap (flip zip [0..5] . replicate 9) [0..8]
-
+-- | Makes extents and their grid locations
 gridExtent :: [(Extent,Coordinate)]
-gridExtent = zip (map (extentLoc . toGloss) gridCoors) gridCoors
- where extentLoc (x,y) = makeExtent (y+halfSchaal)  (y-halfSchaal) (x+halfSchaal)  (x-halfSchaal)
+gridExtent = zip extents gridCoors
+ where extents = map (extentLoc . toGloss) gridCoors
+       extentLoc (x,y) = makeExtent (y+halfSchaal)  (y-halfSchaal) (x+halfSchaal)  (x-halfSchaal)
        toGloss (x, y) = (convert breedte x,negate $ convert hoogte y)
        convert bofh xofy = (-halfSchaal * bofh) + halfSchaal + xofy * schaal
 
@@ -47,71 +46,78 @@ graphic debugtime debugevents images start = playBanana window white 60 reactive
   window = InWindow "Vanheule Tibo, 001700370"
                     (round $ breedte * schaal, round $ hoogte * schaal + schaal)
                     (0                       , 0)
-  reactiveMain floats inputEvents = do
-    -- Debugging
-    when debugtime (accumE 0 (fmap (+) floats) >>= \x -> reactimate $ print <$> x)
-    when debugevents (reactimate $ print <$> inputEvents)
-    -- Don't want all mouse/keypress events, only relevant to the program (filter the event stream)
-    let mouseEvents = filterE isClick inputEvents
-    gameState <- accumB start $ unions [mouse <$> mouseEvents, tick <$> floats]
-    -- On escape => quit
-    reactimate $ specialProgramKeys<$> inputEvents
-    return $ gui images <$> gameState
+  reactiveMain floats events = do
+        -- Debugging
+        when debugtime (accumE 0 (fmap (+) floats) >>= \x -> reactimate $ print <$> x)
+        when debugevents (reactimate $ print <$> events)
+        -- Don't want all mouse/keypress events, only relevant to the program (filter the event stream)
+        let inputEvents = filterE inputFilter events
+        gameState <- accumB start $ unions [event <$> inputEvents, tick <$> floats]
+        -- On escape => quit
+        reactimate $ specialProgramKeys<$> inputEvents
+        return $ gui images <$> gameState
 
 
 -- | returns appropriate io action when specific events occur, quit on escape keypress
-
 specialProgramKeys ::  InputEvent -> IO ()
 specialProgramKeys (EventKey (SpecialKey KeyEsc) Down _ _)  = print "exiting, bye" >> exitSuccess
 specialProgramKeys (EventKey (MouseButton LeftButton) Down _ p) | pointInExtent extentQuit p = print "exiting, bye" >> exitSuccess
                                                                 | otherwise = return ()
 specialProgramKeys _ = return ()
 
+-- | inputFilter is a filter for the event stream, it only keeps the relevant mouseclicks (left) and relevant keypresses
+inputFilter :: InputEvent -> Bool
+inputFilter (EventKey (MouseButton LeftButton) _ _ _) = True
+inputFilter (EventKey (Char 's') Down _ _) = True
+inputFilter (EventKey (Char 'n') Down _ _) = True
+inputFilter _ = False
 
-
--- TODO rename
--- | isClick is a filter for the event stream, it only keeps the relevant mouseclicks (left) and relevant keypresses
-isClick :: InputEvent -> Bool
-isClick (EventKey (MouseButton LeftButton) _ _ _) = True
-isClick (EventKey (Char 's') Down _ _) = True
-isClick (EventKey (Char 'n') Down _ _) = True
-isClick _ = False
-
--- TODO rename, update gaurds with won lost state
 -- | Change the world, depending on the mouse event
-mouse :: InputEvent -> World -> World
-mouse (EventKey (Char 's') Down _ _) g@(World _ _ Menu levels curr) = g {state = Ongoing, chosenLevel = Just (levels !! curr), worldtime = 0 }
-mouse (EventKey (Char 'n') Down _ _) g@(World _ _ Menu levels curr) = g { currlevel = (curr + 1) `mod` length levels }
-mouse (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Menu levels curr)
+event :: InputEvent -> World -> World
+-- if 'S' keypress while being in the menu, start level
+event (EventKey (Char 's') Down _ _) g@(World _ _ Menu levels curr) = g {state = Ongoing, chosenLevel = Just (levels !! curr), worldtime = 0 }
+-- if 'N' keypress while being in the menu, next level
+event (EventKey (Char 'n') Down _ _) g@(World _ _ Menu levels curr) = g { currlevel = (curr + 1) `mod` length levels }
+-- mouseclick while being in the menu
+event (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Menu levels curr)
   -- if menu and on next, calculate possible next level to show
   | pointInExtent extentNext p = g { currlevel = (curr + 1) `mod` length levels }
   -- if menu and on start, set-up the world with the chosen level
   | pointInExtent extentStart p = g {state = Ongoing, chosenLevel = Just (levels !! curr), worldtime = 0 }
   -- otherwise leave the world be
   | otherwise = g
-mouse (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Won levels curr)
-  -- otherwise leave the world be
+-- mouse click while winning a game
+event (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Won levels curr)
+  -- Go to menu, (extentStart used to reuse the extent)
   | pointInExtent extentStart p = g {state = Menu, chosenLevel = Nothing}
+  -- Restart the level again
   | pointInExtent extentNext p = g {state = Ongoing, chosenLevel = Just (levels !! curr), worldtime = 0 }
   -- otherwise leave the world be
   | otherwise = g
-mouse (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Lost levels curr)
-  -- if menu button click, go
+event (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Lost levels curr)
+  -- Go to menu, (extentStart used to reuse the extent)
   | pointInExtent extentStart p = g {state = Menu, chosenLevel = Nothing}
+  -- Restart the level again
   | pointInExtent extentNext p = g {state = Ongoing, chosenLevel = Just (levels !! curr), worldtime = 0 }
   -- otherwise leave the world be
   | otherwise = g
-mouse (EventKey (MouseButton LeftButton) Down _ p) g@(World _  (Just l) Ongoing _ _)
-  -- check if clicked on board
-  | not (null (filterGridExtents p)) =  g { chosenLevel = Just (addplant l (snd $ head $ filterGridExtents p))}
+-- Mouseclick during the game
+event (EventKey (MouseButton LeftButton) Down _ p) g@(World _  (Just l) Ongoing _ _)
+  -- check if clicked on board, place plant on that gird location
+  | any (flip pointInExtent p . fst) gridExtent =  g { chosenLevel = Just (addplant l (snd $ head $ filterGridExtents p))}
+  -- Sunflower is selected
   | pointInExtent extentSunflower p =  g { chosenLevel = Just (l { chosenplant=Just Sunflower } )}
+  -- walnut is selected
   | pointInExtent extentWalnut p = g { chosenLevel = Just (l { chosenplant=Just Walnut } )}
+  -- peaschooter is selected
   | pointInExtent extentPeashooter p = g { chosenLevel = Just (l { chosenplant=Just Peashooter } )}
+  -- leave world be
   | otherwise = g
-mouse _ g = g
+    where -- filter the extents until one remains, to get clicked grid location
+          filterGridExtents p = filter (flip pointInExtent p . fst) gridExtent
+event _ g = g
 
-filterGridExtents :: (Float,Float) -> [(Extent,Coordinate)]
-filterGridExtents p = filter (\(ex,_) -> pointInExtent ex p) gridExtent
+
 
 -- | Decides what will be drawn, a menu or the game itself. and always draw exit button
 gui :: Images -> World -> Picture
@@ -124,9 +130,10 @@ drawMenu (World _ _ _ levels currentlevel) im =
  back im <> levelToPic <> clickable extentNext "Next level (N)"  <> clickable extentStart "Start level (S)"
  where
   levelToPic = levelToPictures $ levels !! currentlevel
+  toTime =
   levelToPictures (Level title difficulty _ _ _ phase _ _ _) = translate (-290) (-40) (uscale 0.1 (text title)) <>
    translate (-290) (-55) (uscale 0.1 (text ("diffculty: " ++ show difficulty) )) <>
-   translate (-290) (-70) (uscale 0.1 (text ("time: " ++ show (getEnd phase) )))
+   translate (-290) (-70)  $ uscale 0.1 (text ("time: " ++ show (toTime $ getEnd phase) ))
 
 back :: Images -> Picture
 back im = scale ((breedte * schaal)/577) ((hoogte * schaal + schaal)/385) (backgroundimage im)
@@ -134,7 +141,7 @@ back im = scale ((breedte * schaal)/577) ((hoogte * schaal + schaal)/385) (backg
 -- | Draws the game board and Won/Lost screen
 drawGame :: World -> Images -> Picture
 drawGame (World time (Just l) Ongoing _ _) im =
-  board l im <> drawProgressBar time (getEnd $ phase l)  <> drawZombies l im <> drawStore l im <> drawPlants l im <> drawGraves l im <> drawHome l im
+  board l im <> drawProgressBar time (getEnd $ phase l)  <> drawZombies im l <> drawStore l im <> drawPlants l im <> drawGraves im l <> drawHome im l
 drawGame (World _ _ Won _ _) im =
   back im <> translate (-290) (-90) (uscale 0.2 (text "You won!")) <> clickable extentStart "Menu (M)" <> clickable extentNext "Restart"
 drawGame (World _ _ Lost _ _) im =
@@ -155,35 +162,37 @@ board l im = pictures $ map (`coorsToGloss` grassImage im) gridCoors ++ map wall
        wallPic c (x,'W') | isin c x = translate (-halfSchaal) 0 $ coorsToGloss c (rectangleSolid 5 schaal)
                          | otherwise =  blank
 
-drawGraves :: Level -> Images -> Picture
-drawGraves l im = pictures $ map graveToPic (graves (levelmap l))
+-- | Places the grave pictures on the correct grid location
+drawGraves :: Images -> Level -> Picture
+drawGraves im = pictures . map graveToPic . graves . levelmap
  where graveToPic = flip coorsToGloss (uscale (30/1200) $ graveimage im) . fst
 
-drawHome :: Level -> Images -> Picture
-drawHome l im = pictures $ map homeToPic (homes (levelmap l))
+-- | Places the home picture on the correct grid location
+drawHome :: Images -> Level-> Picture
+drawHome im = pictures . map homeToPic . homes . levelmap
  where homeToPic = flip coorsToGloss (uscale (45/1200) $ homeimage im)
 
 -- | For a given level, draw the zombies
-drawZombies :: Level -> Images -> Picture
-drawZombies l im = pictures $ map zombieToPicture $ zombies l
+drawZombies :: Images -> Level -> Picture
+drawZombies im = pictures . map zombieToPicture . zombies
  where
   scaler = scale (40/153) (50/209)
-  zombieToPicture ( Zombie Citizen _ coor _ _) = coorsToGloss coor (scaler $ citizenimage im)
-  zombieToPicture ( Zombie Farmer _ coor _ _) = coorsToGloss coor (scaler $ farmerimage im)
-  zombieToPicture ( Zombie Dog _ coor _ _) = coorsToGloss coor (scaler $ dogimage im)
+  zombieToPicture ( Zombie Citizen _ coor _ _ _) = coorsToGloss coor (scaler $ citizenimage im)
+  zombieToPicture ( Zombie Farmer _ coor _ _ _) = coorsToGloss coor (scaler $ farmerimage im)
+  zombieToPicture ( Zombie Dog _ coor _ _ _) = coorsToGloss coor (scaler $ dogimage im)
 
 
--- | For a given level, draw the plants
-drawPlants :: Level -> Images -> Picture
-drawPlants (Level _ _ _ _ p _ _ _ _) im = pictures $ map plantToPicture p ++ peas
+-- | For a given level, draw the plants on the correct grid locations
+drawPlants :: Level -> Images ->  Picture
+drawPlants l im = pictures $ map plantToPicture (plants l) ++ peas (plants l)
  where
-  peas =  map peaToPicture $ concatMap shots p
-  plantToPicture ( Plant typ _ coor _ _ _) = coorsToGloss coor (plantImage typ)
-  peaToPicture ( Pea coor _ _ _) = coorsToGloss coor $ color green $ circle 15
+  peas = map peaToPicture . concatMap shots
+  peaToPicture = flip coorsToGloss (color green (circle 15)) . peapos
+  plantToPicture p = coorsToGloss (plantpos p) (plantImage (planttype p) im)
   scaler = scale (50/200) (40/161)
-  plantImage Peashooter = scaler $ peashooterimage im
-  plantImage Sunflower  = scaler $ sunflowerimage im
-  plantImage Walnut     = scaler $ walnutimage im
+  plantImage Peashooter = scaler . peashooterimage
+  plantImage Sunflower  = scaler . sunflowerimage
+  plantImage Walnut     = scaler . walnutimage
 
 -- | Draw the energy score and draw the store where plants can be bought.
 drawStore :: Level -> Images -> Picture
@@ -199,33 +208,27 @@ drawStore (Level _ _ seeds z _ _ energy _ _) im = energytext <> store seeds
 -- | Draws the progressbar
 drawProgressBar :: Time -> Time -> Picture
 drawProgressBar t tmax = translate 0 260 ( back  <> positingmin ( rectangleSolid schaalmin 20))
- where back = color blue $ rectangleSolid schaalmax 20
+ where back = color blue (rectangleSolid schaalmax 20)
        schaalmax = tmax*200/tmax
        schaalmin = t*200/tmax
        positingmin = translate (-schaalmax/2+schaalmin/2) 0 . color yellow
 
 -- | Makes a clickable, visible area
 clickable :: Extent -> String -> Picture
-clickable ex string = color azure bg <> color black fg
+clickable ex string = color azure bg <> color black (fg string)
  where
   bg     = polygon (cornerPoints ex)
-  fg     = translate x y $ uscale 0.1 $ translate (-150) (-50) $ text string
+  fg     = translate x y . uscale 0.1 . translate (-150) (-70) . text
   (x, y) = centerCoordOfExtent ex
 
+-- | convert grid coordinates to Gloss points
 coorsToGloss :: Coordinate -> Picture -> Picture
-coorsToGloss c@(x, y) = translate (convert breedte x) (negate $ convert hoogte y)
- where
-  schaalhalf = schaal / 2
-  convert bofh xofy = (-schaalhalf * bofh) + schaalhalf + xofy * schaal
+coorsToGloss (x, y) = translate (convert breedte x) (negate $ convert hoogte y)
+ where convert bofh xofy = (-halfSchaal * bofh) + halfSchaal + xofy * schaal
 
+-- | scale a picture given a float, representing x en y scalers
 uscale :: Float -> Picture -> Picture
 uscale v = scale v v
-
-
--- | take the coordinates of the corners of the extent and convert them to points
-cornerPoints :: Extent -> [Point]
-cornerPoints ex = [(w, n), (e, n), (e, s), (w, s)]
-  where (n, s, e, w) = takeExtent ex
 
 -- | Give the world a time tick
 tick :: Float -> World -> World

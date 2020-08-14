@@ -118,15 +118,15 @@ data Images = Images {
 
 -- | Create a zombie Dog
 createDog :: Zombie                   
-createDog = Zombie Dog 2 (9,0) 3 1
+createDog = Zombie Dog 2 (9,0) 3 1 0
 
 -- | Create a zombie Farmer
 createFarmer :: Zombie
-createFarmer = Zombie Farmer 3 (9,0) 4 (1/3)
+createFarmer = Zombie Farmer 3 (9,0) 4 (1/3) 0
 
 -- | Create a zombie citizen
 createCitizen :: Zombie
-createCitizen = Zombie Citizen 3 (9,0) 2 (1/3)
+createCitizen = Zombie Citizen 3 (9,0) 2 (1/3) 0
 
 -- | Create a sunflower
 createSunflower :: Coordinate -> Plant

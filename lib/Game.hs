@@ -37,10 +37,12 @@ dead = filter ((<) 0 . zombielife)
 
 -- | move a zombie , figth with plant, or get hit only if possible.
 actZombie :: [(Coordinate,Coordinate)] -> [Coordinate] -> [Plant] -> Zombie -> Zombie
-actZombie walls home plants z@(Zombie _ _ c@(x,y) _ speed) = z { zombiepos=pos, zombielife=newlife }
+actZombie walls home plants z@(Zombie _ _ c@(x,y) _ speed _) = z { zombiepos=pos, zombielife=newlife, zombielastattack= newzombielastattack}
                where peas = filter (isHit c . peapos) $ concatMap shots plants
                      newlife | null peas =  zombielife z
                              | otherwise = sum $ map ((zombielife z -) . peadamage) peas
+                     newzombielastattack | zombielastattack z == 3*60 = 0
+                                         | otherwise = 1 + zombielastattack z
                      pos | any (isHit c . plantpos) plants = c
                          | otherwise = newCoorUsingPathfinding plants c walls home speed
 
