@@ -40,7 +40,7 @@ char = Parser f
 
 -- | Parse a character satisfying a predicate (e.g., isDigit)
 spot :: (Char -> Bool) -> Parser Char
-spot p = do { c <- char; guard (p c); return c }
+spot p = char >>= \c -> guard (p c) >>= return c
 
 -- | Parse a character matching a given character
 token :: Char -> Parser Char
@@ -48,9 +48,7 @@ token c = spot (== c)
 
 -- | parse a string mathing string argument
 string :: String -> Parser String
-string s = do
-    mapM_ token s
-    return s
+string s = mapM_ token s >>= return s
 
 -- | If called, the parser will fail
 geefError :: Error -> Parser a
