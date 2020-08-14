@@ -12,18 +12,18 @@ on every home { Dog }
 every 3.5 seconds for 10 times {
     on every home { Citizen }
 }
-after  5 seconds { on home 1     { Farmer } }
-after 10 seconds { on home 2     { Farmer } }
-after 15 seconds { on home 3     { Farmer } }
-after 20 seconds { on home 4     { Farmer } }
-after 25 seconds { on home 5     { Farmer } }
-after 30 seconds { on home 6     { Farmer } }
+after  5 seconds { on home A     { Farmer } }
+after 10 seconds { on home B     { Farmer } }
+after 15 seconds { on home B     { Farmer } }
+after 20 seconds { on home C     { Farmer } }
+after 25 seconds { on home C     { Farmer } }
+after 30 seconds { on home A     { Farmer } }
 after 35 seconds { on every home { Farmer } }
 00:40 - Building Phase
 00:50 - Zombie Phase
 every 5 seconds for 10 times {
   every 1 seconds for 3 times {
-    on home 3 {
+    on home C {
       Bucket Dog
     }
   }

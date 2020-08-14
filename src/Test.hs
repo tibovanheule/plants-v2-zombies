@@ -37,8 +37,8 @@ runTest :: World -> IO()
 runTest game = case state game of
                     Ongoing -> tick game
                     Menu -> die "ERROR, state corrupted"
-                    Lost -> putStr "Loss after " >> putStr ( show (time game)) >> putStr " seconds" >> exitSuccess
-                    Won -> putStr "Victory at " >> putStr (show (time game)) >> exitSuccess
+                    Lost -> putStr "Loss after " >> putStr ( show (worldtime game)) >> putStr " seconds" >> exitSuccess
+                    Won -> putStr "Victory at " >> putStr (show (worldtime game)) >> exitSuccess
 
 -- | Give the world a time tick, then let runtest decide if a tick is again needed
 tick :: World -> IO()

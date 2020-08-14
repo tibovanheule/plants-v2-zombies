@@ -6,7 +6,6 @@ import Graphics.Gloss (Picture)
 type Coordinate = (Float, Float)
 type Life = Int
 type Damage = Int
-type Lane = Float
 type Speed = Float
 type Time = Float
 type Error = String
@@ -57,7 +56,7 @@ data Phases = Phases {  start :: Time
 } deriving (Show)
 
 data Spawn = Spawn { wanneer :: [Time]
-                    ,spawnLanes :: [Lane]
+                    ,spawnLanes :: [Coordinate]
                     ,spawnzombies :: [Zombie]
 } deriving (Show)
 
@@ -81,7 +80,7 @@ data Map = Map { wall :: [(Coordinate,Coordinate)]
 -- | World Data type, keeps all level options (as read by the parser) and keep state
 data World = World {
                      -- time keeps
-                    time   :: Time
+                    worldtime   :: Time
                    , chosenLevel :: Maybe Level
                    , state :: State
                    , plevels :: [Level]
@@ -95,7 +94,10 @@ data Images = Images {
                 grassimage :: Picture ,
                 peashooterimage :: Picture ,
                 sunflowerimage :: Picture ,
-                walnutimage :: Picture
+                walnutimage :: Picture,
+                graveimage :: Picture,
+                homeimage :: Picture,
+                backgroundimage :: Picture
 }
 
 

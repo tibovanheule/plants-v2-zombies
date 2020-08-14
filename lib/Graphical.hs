@@ -6,17 +6,9 @@ module Graphical
   )
 where
 
-import           Graphics.Gloss                 ( Picture(..)
-                                                , play
-                                                , translate
-                                                , rectangleSolid
-                                                , loadBMP
-                                                )
-import           Graphics.Gloss.Data.Color      ( Color
-                                                , white
-                                                )
-import           Graphics.Gloss.Interface.Pure.Game
-                                         hiding ( Event )
+import           Graphics.Gloss                 ( Picture(..) , translate , rectangleSolid)
+import           Graphics.Gloss.Data.Color      ( Color , white  )
+import           Graphics.Gloss.Interface.Pure.Game hiding ( Event )
 import           Types
 import           Game
 import           Data.Tuple
@@ -27,20 +19,13 @@ import           Reactive.Banana.Frameworks
 import           Reactive.Banana
 import           Extent
 import           Control.Monad
-import           System.IO.Unsafe
-import           Debug.Trace
-
--- | Constants
-schaal, breedte, hoogte :: Float
-schaal = 70
-breedte = 9
-hoogte = 7
+import           Constants
 
 -- | basic globally used extents, these are for
 extentQuit, extentNext, extentStart, extentSunflower, extentWalnut, extentPeashooter :: Extent
 extentQuit = makeExtent (-210) (-240) 300 170
-extentNext = makeExtent (-10) (-40) 65 (-65)
-extentStart = makeExtent (-60) (-90) 65 (-65)
+extentNext = makeExtent (-110) (-140) (-150) (-280)
+extentStart = makeExtent (-150) (-180) (-150) (-280)
 extentSunflower = makeExtent (-205) (-255) (-125) (-175)
 extentWalnut = makeExtent  (-205) (-255) (-75) (-125)
 extentPeashooter = makeExtent (-205) (-255) (-25) (-75)
@@ -50,8 +35,7 @@ gridCoors = concatMap (flip zip [0..5] . replicate 9) [0..8]
 
 gridExtent :: [(Extent,Coordinate)]
 gridExtent = zip (map (extentLoc . toGloss) gridCoors) gridCoors
- where halfSchaal = schaal / 2
-       extentLoc (x,y) = makeExtent (y+halfSchaal)  (y-halfSchaal) (x+halfSchaal)  (x-halfSchaal)
+ where extentLoc (x,y) = makeExtent (y+halfSchaal)  (y-halfSchaal) (x+halfSchaal)  (x-halfSchaal)
        toGloss (x, y) = (convert breedte x,negate $ convert hoogte y)
        convert bofh xofy = (-halfSchaal * bofh) + halfSchaal + xofy * schaal
 
@@ -96,25 +80,25 @@ isClick _ = False
 -- TODO rename, update gaurds with won lost state
 -- | Change the world, depending on the mouse event
 mouse :: InputEvent -> World -> World
-mouse (EventKey (Char 's') Down _ _) g@(World _ _ Menu levels curr) = g {state = Ongoing, chosenLevel = Just (levels !! curr), time = 0 }
+mouse (EventKey (Char 's') Down _ _) g@(World _ _ Menu levels curr) = g {state = Ongoing, chosenLevel = Just (levels !! curr), worldtime = 0 }
 mouse (EventKey (Char 'n') Down _ _) g@(World _ _ Menu levels curr) = g { currlevel = (curr + 1) `mod` length levels }
 mouse (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Menu levels curr)
   -- if menu and on next, calculate possible next level to show
   | pointInExtent extentNext p = g { currlevel = (curr + 1) `mod` length levels }
   -- if menu and on start, set-up the world with the chosen level
-  | pointInExtent extentStart p = g {state = Ongoing, chosenLevel = Just (levels !! curr), time = 0 }
+  | pointInExtent extentStart p = g {state = Ongoing, chosenLevel = Just (levels !! curr), worldtime = 0 }
   -- otherwise leave the world be
   | otherwise = g
 mouse (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Won levels curr)
   -- otherwise leave the world be
   | pointInExtent extentStart p = g {state = Menu, chosenLevel = Nothing}
-  | pointInExtent extentNext p = g {state = Ongoing, chosenLevel = Just (levels !! curr), time = 0 }
+  | pointInExtent extentNext p = g {state = Ongoing, chosenLevel = Just (levels !! curr), worldtime = 0 }
   -- otherwise leave the world be
   | otherwise = g
 mouse (EventKey (MouseButton LeftButton) Down _ p) g@(World _ _ Lost levels curr)
   -- if menu button click, go
   | pointInExtent extentStart p = g {state = Menu, chosenLevel = Nothing}
-  | pointInExtent extentNext p = g {state = Ongoing, chosenLevel = Just (levels !! curr), time = 0 }
+  | pointInExtent extentNext p = g {state = Ongoing, chosenLevel = Just (levels !! curr), worldtime = 0 }
   -- otherwise leave the world be
   | otherwise = g
 mouse (EventKey (MouseButton LeftButton) Down _ p) g@(World _  (Just l) Ongoing _ _)
@@ -131,33 +115,53 @@ filterGridExtents p = filter (\(ex,_) -> pointInExtent ex p) gridExtent
 
 -- | Decides what will be drawn, a menu or the game itself. and always draw exit button
 gui :: Images -> World -> Picture
-gui im g@(World _ Nothing Menu _ _) = drawMenu g <> clickable extentQuit "exit"
+gui im g@(World _ Nothing Menu _ _) = drawMenu g im <> clickable extentQuit "exit"
 gui im g                            = drawGame g im <> clickable extentQuit "exit"
 
 -- | Draws the menu
-drawMenu :: World -> Picture
-drawMenu (World _ _ _ levels currentlevel) =
- levelToPic <> clickable extentNext "Next level (N)"  <> clickable extentStart "Start level (S)"
+drawMenu :: World -> Images -> Picture
+drawMenu (World _ _ _ levels currentlevel) im =
+ back im <> levelToPic <> clickable extentNext "Next level (N)"  <> clickable extentStart "Start level (S)"
  where
   levelToPic = levelToPictures $ levels !! currentlevel
-  levelToPictures (Level title difficulty _ _ _ phase _ _ _) = translate (-200) 200 (uscale 0.1 (text title)) <>
-   translate (-200) 170 (uscale 0.1 (text ("diffculty: " ++ show difficulty) )) <>
-   translate (-200) 140 (uscale 0.1 (text ("time: " ++ show (getEnd phase) )))
+  levelToPictures (Level title difficulty _ _ _ phase _ _ _) = translate (-290) (-40) (uscale 0.1 (text title)) <>
+   translate (-290) (-55) (uscale 0.1 (text ("diffculty: " ++ show difficulty) )) <>
+   translate (-290) (-70) (uscale 0.1 (text ("time: " ++ show (getEnd phase) )))
+
+back :: Images -> Picture
+back im = scale ((breedte * schaal)/5774) ((hoogte * schaal + schaal)/3850) (backgroundimage im)
 
 -- | Draws the game board and Won/Lost screen
 drawGame :: World -> Images -> Picture
-drawGame (World time (Just l) Ongoing _ _) im = grass im <> drawProgressBar time (duration l)  <> drawZombies l im <> drawStore l im <> drawPlants l im
-drawGame (World _ _ Won _ _) _ = uscale 0.2 (text "Good job! You won") <> clickable extentStart "Menu (M)" <> clickable extentNext "Restart"
-drawGame (World _ _ Lost _ _) _ = uscale 0.2 (text "Try again, you Lost") <> clickable extentStart "Menu (M)" <> clickable extentNext "Restart"
+drawGame (World time (Just l) Ongoing _ _) im =
+  board l im <> drawProgressBar time (getEnd $ phase l)  <> drawZombies l im <> drawStore l im <> drawPlants l im <> drawGraves l im <> drawHome l im
+drawGame (World _ _ Won _ _) im =
+  back im <> translate (-290) (-90) (uscale 0.2 (text "You won!")) <> clickable extentStart "Menu (M)" <> clickable extentNext "Restart"
+drawGame (World _ _ Lost _ _) im =
+  back im <> translate (-290) (-90) (uscale 0.1 (text "Try again, you Lost!")) <> clickable extentStart "Menu (M)" <> clickable extentNext "Restart"
 drawGame _ _ = blank
 
-grass :: Images -> Picture
-grass im = pictures $ map (`coorsToGloss` grassImage im ) gridCoors
-      where grassImage = scale (70/32) (70/32) . grassimage
+board :: Level -> Images -> Picture
+board l im = pictures $ map (`coorsToGloss` grassImage im) gridCoors ++ map walls gridCoors
+ where grassImage = uscale (70/32) . grassimage
+       walls c = pictures $ map (wallPic c) (zip (defaultNeigbours c) ['N','E','S','W'])
+       isin s w = (s,w) `elem` wall ( levelmap l) || (w,s) `elem` wall ( levelmap l)
+       wallPic c (x,'N') | isin c x = translate 0 halfSchaal $ coorsToGloss c (rectangleSolid schaal 5)
+                         | otherwise = blank
+       wallPic c (x,'E') | isin c x =  translate halfSchaal 0 $ coorsToGloss c (rectangleSolid 5 schaal)
+                         | otherwise =  blank
+       wallPic c (x,'S') | isin c x = translate 0 (-halfSchaal) $ coorsToGloss c (rectangleSolid schaal 5)
+                         | otherwise =  blank
+       wallPic c (x,'W') | isin c x = translate (-halfSchaal) 0 $ coorsToGloss c (rectangleSolid 5 schaal)
+                         | otherwise =  blank
 
+drawGraves :: Level -> Images -> Picture
+drawGraves l im = pictures $ map graveToPic (graves (levelmap l))
+ where graveToPic = flip coorsToGloss (uscale (30/1200) $ graveimage im) . fst
 
-duration :: Level -> Time
-duration (Level _ _ _ _ _ p _ _ _) = getEnd p
+drawHome :: Level -> Images -> Picture
+drawHome l im = pictures $ map homeToPic (homes (levelmap l))
+ where homeToPic = flip coorsToGloss (uscale (45/1200) $ homeimage im)
 
 -- | For a given level, draw the zombies
 drawZombies :: Level -> Images -> Picture

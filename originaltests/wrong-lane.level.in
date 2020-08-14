@@ -8,9 +8,9 @@ bXf59acf5
 A22a2226B
 00:00 - Zombie Phase
 every 9.0 seconds for 100 times {
-	on home 1 { Dog }
+	on home A { Dog }
 }
 after 2.0 seconds {
-	on home 2 { Dog }
+	on home B { Dog }
 }
 00:15

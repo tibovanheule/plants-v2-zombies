@@ -6,6 +6,8 @@ import Control.Monad
 import Data.Maybe
 import Numeric (readHex)
 import Text.Printf (printf)
+import Constants
+import Debug.Trace
 {- for reference
 some = 1 of meer
 many = 0 of meer
@@ -76,31 +78,33 @@ endPhaseParser :: Parser PhaseType
 endPhaseParser = return EndPhase
 
 -- | Parse all Phases and there spawns
-phaseParser :: Parser Phases
-phaseParser = do whiteEndWhiteParser
-                 timestamp <- timeParser
-                 whiteEndWhiteParser
-                 optional $ token '-'
-                 whiteParser
-                 name <- orParser [zombiePhaseParser,buildingPhaseParser,endPhaseParser]
-                 spawns <- many spawnParser
-                 return (Phases timestamp name spawns)
+phaseParser :: [(Coordinate,Char)] -> Parser Phases
+phaseParser graves = do whiteEndWhiteParser
+                        timestamp <- timeParser
+                        whiteEndWhiteParser
+                        optional $ token '-'
+                        whiteParser
+                        name <- orParser [zombiePhaseParser,buildingPhaseParser,endPhaseParser]
+                        spawns <- many $ spawnParser graves
+                        return (Phases timestamp name spawns)
 
 -- | Parses sentence like "home A"
-laneParser :: Parser [Lane]
-laneParser = string "home" >> whiteParser >> digitParser >>= \lane -> return [read [lane] ::Float]
-
+laneParser :: [(Coordinate,Char)] -> Parser [Coordinate]
+laneParser graves = string "home" >> whiteParser >> letterParser >>= \home -> case filter ( (==) home . snd) graves of
+                                                                                 [] -> geefError "invalid home"
+                                                                                 _ -> return (map fst $ filter ( (==) home . snd) graves)
 -- | Parses sentences like " on every home"
-everyParser :: Parser [Lane]
-everyParser = string "every" >> whiteParser >> string "home" >> return [1,2,3,4,5,6]
+everyParser :: [(Coordinate,Char)] -> Parser [Coordinate]
+everyParser graves = string "every" >> whiteParser >> string "home" >> return (map fst graves)
 
 -- | Parses sentences like on every lane ...
-onLaneParser :: Parser Spawn
-onLaneParser = do lane <- everyParser <|> laneParser
+onLaneParser :: [(Coordinate,Char)] -> Parser Spawn
+onLaneParser graves =
+               do lane <- everyParser graves <|> laneParser graves
                   whiteParser
                   token '{'
                   whiteParser
-                  nested <- optional spawnParser
+                  nested <- optional $ spawnParser graves
                   whiteParser
                   endlineParser
                   whiteParser
@@ -121,14 +125,15 @@ onLaneParser = do lane <- everyParser <|> laneParser
 
 
 --- after  5 seconds {
-afterParser :: Parser Spawn
-afterParser = do time <- some $ digitParser <|> token '.'
+afterParser :: [(Coordinate,Char)] -> Parser Spawn
+afterParser graves
+            = do time <- some $ digitParser <|> token '.'
                  whiteParser
                  string "seconds"
                  whiteParser
                  token '{'
                  whiteEndWhiteParser
-                 nested <- optional spawnParser
+                 nested <- optional $ spawnParser graves
                  let runs = case nested of
                                 Nothing -> [read time ::Float]
                                 Just t -> [read time ::Float] >>= \i -> wanneer t >>= \j -> return (i+j)
@@ -143,49 +148,49 @@ afterParser = do time <- some $ digitParser <|> token '.'
                  whiteEndWhiteParser
                  return (Spawn runs lanes zombies)
 
-everySpawnParser :: Parser Spawn
-everySpawnParser = do whiteParser
-                      sec <- many $ digitParser <|> token '.'
-                      whiteParser
-                      string "seconds"
-                      whiteParser
-                      string "for"
-                      whiteParser
-                      times <- some digitParser
-                      whiteParser
-                      string "times"
-                      whiteParser
-                      token '{'
-                      whiteEndWhiteParser
-                      nested <- optional spawnParser
-                      let run = [read times :: Int] >>= \timesInt -> [read sec ::Float] >>= \secInt -> take timesInt [0,secInt..]
-                          runs = case nested of
-                                    Nothing -> run
-                                    Just t -> run >>= \i -> wanneer t >>= \j -> return (i+j)
-                          lanes = case nested of
-                                       Nothing -> []
-                                       Just t -> spawnLanes t
-                          zombies = case nested of
-                                         Nothing -> []
-                                         Just t -> spawnzombies t
-                      whiteEndWhiteParser
-                      token '}'
-                      endlineParser
-                      return (Spawn runs lanes zombies)
+everySpawnParser :: [(Coordinate,Char)] -> Parser Spawn
+everySpawnParser graves = do whiteParser
+                             sec <- many $ digitParser <|> token '.'
+                             whiteParser
+                             string "seconds"
+                             whiteParser
+                             string "for"
+                             whiteParser
+                             times <- some digitParser
+                             whiteParser
+                             string "times"
+                             whiteParser
+                             token '{'
+                             whiteEndWhiteParser
+                             nested <- optional $ spawnParser graves
+                             let run = [read times :: Int] >>= \timesInt -> [read sec ::Float] >>= \secInt -> take timesInt [0,secInt..]
+                                 runs = case nested of
+                                           Nothing -> run
+                                           Just t -> run >>= \i -> wanneer t >>= \j -> return (i+j)
+                                 lanes = case nested of
+                                              Nothing -> []
+                                              Just t -> spawnLanes t
+                                 zombies = case nested of
+                                                Nothing -> []
+                                                Just t -> spawnzombies t
+                             whiteEndWhiteParser
+                             token '}'
+                             endlineParser
+                             return (Spawn runs lanes zombies)
 
-spawnParser :: Parser Spawn
-spawnParser = do whiteEndWhiteParser
-                 whatHappend <-  string "on" <|> string "after" <|> string "every" <|> string "Bucket" <|> string "Citizen" <|> string "Farmer" <|> string "Dog"
-                 whiteEndWhiteParser
-                 case whatHappend of
-                       "on" -> onLaneParser
-                       "after" -> afterParser
-                       "every" -> everySpawnParser
-                       "Dog" -> return (Spawn [0] [] [createDog])
-                       "Citizen" -> return (Spawn [0] [] [createCitizen])
-                       "Farmer" -> return (Spawn [0] [] [createFarmer])
-                       "Bucket" -> bucketParser
-                       _ -> geefError "Not in case"
+spawnParser :: [(Coordinate,Char)] -> Parser Spawn
+spawnParser graves = do whiteEndWhiteParser
+                        whatHappend <-  string "on" <|> string "after" <|> string "every" <|> string "Bucket" <|> string "Citizen" <|> string "Farmer" <|> string "Dog"
+                        whiteEndWhiteParser
+                        case whatHappend of
+                               "on" -> onLaneParser graves
+                               "after" -> afterParser graves
+                               "every" -> everySpawnParser graves
+                               "Dog" -> return (Spawn [0] [] [createDog])
+                               "Citizen" -> return (Spawn [0] [] [createCitizen])
+                               "Farmer" -> return (Spawn [0] [] [createFarmer])
+                               "Bucket" -> bucketParser
+                               _ -> geefError "Not in case"
 
 bucketParser :: Parser Spawn
 bucketParser = do what <- string "Citizen" <|> string "Farmer" <|> string "Dog"
@@ -205,26 +210,27 @@ mergeMaps x y = Map (wall x ++ wall y) (homes x ++ homes y) (graves x ++ graves 
 maplineParser :: Float -> Parser Map
 maplineParser y = do cells <- count 9 cell
                      endlineParser
-                     return  $ cellToMap 6 cells (Map [] [] [])
+                     return  $ cellsToMap y cells (Map [] [] [])
  where cell = hex <|> token 'X' <|> grave
        hex = spot (\x -> isHexDigit x && (isLower x || isDigit x))
        grave = spot isUpper
 
-cellToMap :: Float -> String -> Map -> Map
-cellToMap _ [] map = map
-cellToMap y [x] map = map2 x (0,y) map
-cellToMap y s@(x:xs) map = cellToMap y xs (map2 x ( fromIntegral $ length s - 1, y) map)
+cellsToMap :: Float -> String -> Map -> Map
+cellsToMap _ [] map = map
+cellsToMap y [x] map = map2 x (8,y) map
+cellsToMap y s@(x:xs) map = cellsToMap y xs (map2 x ( fromIntegral $ 9 - length s, y) map)
 
 map2 :: Char -> (Float, Float) -> Map -> Map
 map2 x c mapp | isHexDigit x && (isLower x || isDigit x) = mapp { wall = wall mapp ++ newwalls x}
               | x == 'X' || x == 'x' = mapp { homes = c:homes mapp}
+              | isUpper x = mapp { graves = (c,x):graves mapp}
               | otherwise = mapp
- where newwalls x = map (\x -> (c,add x c)) (binaryToDirection [(1.0,0.0),(0.0,1.0),(-1.0,0.0),(0.0,-1.0)] x) -- TODO controleer als alles overeen komt
+ where newwalls g = map (\y -> (c,add c y)) (binaryToDirection directions g)
        add (x,y) (x',y') = (x+x',y+y')
 
 binaryToDirection :: [Coordinate] -> Char -> [Coordinate]
 binaryToDirection xs = map fst . filter ((==) '1'. snd) . zip xs . hexToBin
- where hexToBin c = case readHex [c] of
+ where hexToBin g = case readHex [g] of
                            (x,""):_ -> printf "%04b" (x::Int)
                            _       -> "0000"
 
@@ -236,5 +242,5 @@ levelParser = do title <- titleParser
                  seeds <- seedsParser
                  endlineParser
                  levelmap <- mapParser
-                 phases <- some phaseParser
+                 phases <- some $ phaseParser (graves levelmap)
                  return $ Level title diff seeds [] [] phases 10 Nothing levelmap

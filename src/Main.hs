@@ -65,6 +65,9 @@ readLevelFile file = getLevel <$> readFile file
 getLevel :: String -> Either Error Level
 getLevel =  parseStatement levelParser
 
+
+-- | Read images, load PNGs to use later in the gui. The function is called here to avoid the use of unsafePerformIO.
+-- Juicy is used because it supports reading PNGs with transparency. BPM format does not natively support transparency
 readImages :: IO Images
 readImages = do
                 citizen <- loadJuicyPNG "images/citizen.png"
@@ -74,4 +77,7 @@ readImages = do
                 pea <- loadJuicyPNG "images/peashooter.png"
                 sunflower <- loadJuicyPNG "images/sunflower.png"
                 walnut <- loadJuicyPNG "images/walnut.png"
-                return (Images (fromJust citizen) (fromJust dog) (fromJust farmer) grass (fromJust pea) (fromJust sunflower) (fromJust  walnut))
+                grave <- loadJuicyPNG "images/grave.png"
+                home <- loadJuicyPNG "images/home.png"
+                back <- loadJuicyPNG "images/back.png"
+                return (Images (fromJust citizen) (fromJust dog) (fromJust farmer) grass (fromJust pea) (fromJust sunflower) (fromJust  walnut) (fromJust grave) (fromJust home) (fromJust back))

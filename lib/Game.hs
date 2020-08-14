@@ -1,28 +1,26 @@
 -- | Implementation of the game logic.
 module Game where
-import           Types
-import Debug.Trace
+import Types
 import Data.Maybe (isJust)
 import Data.List
 import Data.Function
-import Data.Fixed (mod')
+import Pathfinding
 
 changeWorld :: World -> World
-changeWorld (World time (Just l@(Level _ _ _ z p phases en _ levelmap)) _ levels currlevel) = World (time+1) level newState levels currlevel
-                                         where zom =  map (actZombie p) (dead z ++ spawn time phases)
+changeWorld w@(World time (Just l@(Level _ _ _ z p phases en _ levelmap)) _ _ _) = w { worldtime = 1 + worldtime w, chosenLevel= Just newlevel, state=newState}
+                                         where zom =  map (actZombie (wall levelmap) (homes levelmap) p) (dead z ++ spawn time phases)
                                                filteredPhases = filterPhases time phases
                                                plant = movePeas z $ map (shoot z) p
                                                currentState = head filteredPhases
                                                newState = isWon time currentState z
-                                               level = Just (l { zombies=zom, phase= filteredPhases, plants=plant, energy=calcEnergy en p})
+                                               newlevel = l { zombies=zom, phase= filteredPhases, plants=plant, energy=calcEnergy en p}
 --- GAME LOGIC
 
 -- | add a plant to a level
 addplant :: Level -> Coordinate -> Level
-addplant l c@(x,y) | energy l - cost >= 0  && isJust (chosenplant l) &&  isCoorTaken =  l { plants=plant ++ plants l, energy = energy l - cost}
-                   | otherwise = l
- where isCoorTaken = not $ any check (plants l)
-       check (Plant _ _ (x',y') _  _ _) = (x == x') && (y == y')
+addplant l c | energy l - cost >= 0  && isJust (chosenplant l) &&  isCoorTaken =  l { plants=plant ++ plants l, energy = energy l - cost}
+             | otherwise = l
+ where isCoorTaken = not $ any ((==) c . plantpos) (plants l)
        cost = case chosenplant l of
                    Just Walnut -> 6
                    Just Peashooter -> 6
@@ -36,24 +34,22 @@ addplant l c@(x,y) | energy l - cost >= 0  && isJust (chosenplant l) &&  isCoorT
 
 -- | filter away dead zombies
 dead :: [Zombie] -> [Zombie]
-dead = filter (\(Zombie _ l _ _ _) -> l > 0)
+dead = filter ((<) 0 . zombielife)
 
 -- | move a zombie , figth with plant, or get hit only if possible.
-actZombie :: [Plant] -> Zombie -> Zombie
-actZombie plants z@(Zombie _ life c@(x,y) _ speed) = z { zombiepos=pos, zombielife=newlife }
-               where isHit (Pea (x',y') _ _ _) = abs(x - x') <= 0.5 && abs(y - y') <= 0.5
-                     peas = filter isHit $ concatMap shots plants
+actZombie :: [(Coordinate,Coordinate)] -> [Coordinate] -> [Plant] -> Zombie -> Zombie
+actZombie walls home plants z@(Zombie _ life c@(x,y) _ speed) = z { zombiepos=pos, zombielife=newlife }
+               where isHit (x',y') = abs(x - x') <= 0.5 && abs(y - y') <= 0.5
+                     peas = filter (isHit . peapos) $ concatMap shots plants
                      newlife | null peas =  life
                              | otherwise = sum $ map ((life -) . peadamage) peas
-                     pos = case zombieBeforePlant plants (x-1.0,y) of
-                                [] -> (x-(speed/60),y)
-                                p -> c
-
-
--- | Checks if there is a plant that stands in the way of the zombie
-zombieBeforePlant :: [Plant] -> Coordinate -> [Plant]
-zombieBeforePlant p (x,y) = filter check p
-                            where check (Plant _ _ (x',y') _ _ _) = (x' - x) > 0 && (x' - x) < 1 && y' == y
+                     newpos' t | length t > 1 = newpos c $ t !! 1
+                               | length t == 1 = newpos c $ head t
+                               | otherwise = c
+                     newpos (x',y') (x'',y'') = (x'+((x''-x')*speed/60),y'+((y''-y')*speed/60))
+                     pos = case astarSearch walls plants (fromIntegral $ round x,fromIntegral $ round y) (head home) of
+                                Just t -> newpos' t
+                                Nothing -> c
 
 movePeas :: [Zombie] -> [Plant] -> [Plant]
 movePeas z = map (\p -> p {shots = newshots p} )
@@ -96,31 +92,26 @@ shoot _ p = p
 -- | Find closest zombie and ATTACKS, DIE ZOMBIE, DIE ZOMBIE
 peas :: [Zombie] -> Coordinate -> Pea
 peas z c = createPea c $ direction c zombie
-  where direction (x,y) (x',y') = ((x'-x)/60,(y'-y)/60)
+  where direction (x,y) (x',y') = ((x'-x) /60,(y'-y)/60)
         zombie = zombiepos $ minimumBy (compare `on` (euclidian c . zombiepos) ) z
+        -- The distance function is simplified. sqrt(x) < sqrt(y) => x < y
         euclidian (x,y) (x',y') = abs(x'-x) + abs (y'-y)
                                  
 -- | Get all spawns of zombies out of a phase
 spawn :: Time -> [Phases] -> [Zombie]
 spawn t = concatMap (createZombies t) . getCurrentPhaseSpawns
+ where getCurrentPhaseSpawns = phaseSpawns . head
 
 -- | een lijst van zombies maken als dit nodig blijkt
 createZombies :: Time -> Spawn -> [Zombie]
-createZombies time (Spawn r l zombies) | any ((==) time . (*60)) r = concatMap putZombieOnLane l
+createZombies time (Spawn r g zombies) | any ((==) time . (*60)) r = concatMap putZombieOnGrave g
                                        | otherwise = []
- where putZombieOnLane lane = map (\z -> z {zombiepos=(fst $ zombiepos z,lane-1)} ) zombies
+ where putZombieOnGrave grave = map (\z -> z {zombiepos=grave} ) zombies
 
 -- | use Time to filter Phases that ended
 filterPhases :: Time -> [Phases] -> [Phases]
 filterPhases t p | length p > 1 = del (p !! 1)
                  | otherwise = p
- where
-  del (Phases start _ _) | (start * 60) < t = tail p
-                         | otherwise = p
+ where del (Phases start _ _) | (start * 60) < t = tail p
+                              | otherwise = p
 
-getCurrentPhaseSpawns :: [Phases] -> [Spawn]
-getCurrentPhaseSpawns = phaseSpawns . head
-
-
-
-  -- round10 x = (fromInteger $ round $ x *10) / 10
