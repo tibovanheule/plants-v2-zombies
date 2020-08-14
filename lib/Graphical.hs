@@ -129,7 +129,7 @@ drawMenu (World _ _ _ levels currentlevel) im =
    translate (-290) (-70) (uscale 0.1 (text ("time: " ++ show (getEnd phase) )))
 
 back :: Images -> Picture
-back im = scale ((breedte * schaal)/5774) ((hoogte * schaal + schaal)/3850) (backgroundimage im)
+back im = scale ((breedte * schaal)/577) ((hoogte * schaal + schaal)/385) (backgroundimage im)
 
 -- | Draws the game board and Won/Lost screen
 drawGame :: World -> Images -> Picture

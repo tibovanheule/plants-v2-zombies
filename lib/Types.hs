@@ -12,6 +12,7 @@ type Error = String
 type Energy = Int
 type CurrLevel = Int
 type Direction = Coordinate
+type Wall = (Coordinate,Coordinate)
 
 -- |Diffrent state of a game
 data State = Ongoing | Won | Lost | Menu
@@ -72,7 +73,7 @@ data Level = Level { title :: String
                    , levelmap :: Map
 } deriving (Show)
 
-data Map = Map { wall :: [(Coordinate,Coordinate)]
+data Map = Map { wall :: [Wall]
                    , homes :: [Coordinate]
                    , graves :: [(Coordinate,Char)]
 } deriving (Show)

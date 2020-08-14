@@ -23,8 +23,8 @@ inbound :: Coordinate -> Bool
 inbound (x,y) = x >= 0 && x < 9 && y < 6 && y >= 0
 
 -- | Gives back an array of coordinates to use for the open list
-possibleMoves :: [(Coordinate,Coordinate)] -> [Plant] -> Coordinate-> [Coordinate]
-possibleMoves walls plants c = filter (\x -> nowall c walls x && noplant x plants && inbound x) (defaultNeigbours c)
+possibleMoves :: [(Coordinate,Coordinate)] -> [Plant] -> Coordinate -> Coordinate -> [Coordinate]
+possibleMoves walls plants end c = filter (\x -> nowall c walls x && inbound x && (noplant x plants || x == end)) (defaultNeigbours c)
 
 -- | heuristic for the a-star search algorithm. Simplified version of euclidean distance
 heuristic :: Coordinate -> Coordinate -> Int
@@ -34,7 +34,7 @@ heuristic (x,y) (x',y') = round $ abs(x'-x) + abs (y'-y)
 astarSearch :: [(Coordinate,Coordinate)] -> [Plant] -> Coordinate -> Coordinate -> Maybe [Coordinate]
 astarSearch walls plants startNode end = astar (PQ.singleton (heuristic end startNode) (startNode, 0)) Set.empty (Map.singleton startNode 0) Map.empty
  where
-    isEnd c = c == end || any ((==) c. plantpos) plants
+    isEnd c = c == end
     astar open seen gscore tracks
       -- failed => return nothing
       | PQ.null open = Nothing
@@ -65,7 +65,7 @@ astarSearch walls plants startNode end = astar (PQ.singleton (heuristic end star
         tracks' = foldl' (\m (s, _, _) -> Map.insert s node m) tracks successors
 
     -- Successors of a node (posible moves) and their cost
-    successorsAndCosts gcost = map (\s -> (s, gcost + 1, heuristic end s)) . possibleMoves walls plants
+    successorsAndCosts gcost = map (\s -> (s, gcost + 1, heuristic end s)) . possibleMoves walls plants end
     -- If a Path is possible, construct it
     getPath tracks node | Map.member node tracks = getPath tracks (fromJust . Map.lookup node $ tracks) ++ [node] -- nod is meber of tracks
                         | otherwise = [node]
