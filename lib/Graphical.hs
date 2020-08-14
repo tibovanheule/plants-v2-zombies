@@ -130,22 +130,21 @@ drawMenu (World _ _ _ levels currentlevel) im =
  back im <> levelToPic <> clickable extentNext "Next level (N)"  <> clickable extentStart "Start level (S)"
  where
   levelToPic = levelToPictures $ levels !! currentlevel
-  toTime =
   levelToPictures (Level title difficulty _ _ _ phase _ _ _) = translate (-290) (-40) (uscale 0.1 (text title)) <>
    translate (-290) (-55) (uscale 0.1 (text ("diffculty: " ++ show difficulty) )) <>
-   translate (-290) (-70)  $ uscale 0.1 (text ("time: " ++ show (toTime $ getEnd phase) ))
+   translate (-290) (-70) (uscale 0.1 (text ("time: " ++ show (getEnd phase) )))
 
 back :: Images -> Picture
-back im = scale ((breedte * schaal)/577) ((hoogte * schaal + schaal)/385) (backgroundimage im)
+back = scale ((breedte * schaal)/577) ((hoogte * schaal + schaal)/385) . backgroundimage
 
 -- | Draws the game board and Won/Lost screen
 drawGame :: World -> Images -> Picture
 drawGame (World time (Just l) Ongoing _ _) im =
   board l im <> drawProgressBar time (getEnd $ phase l)  <> drawZombies im l <> drawStore l im <> drawPlants l im <> drawGraves im l <> drawHome im l
 drawGame (World _ _ Won _ _) im =
-  back im <> translate (-290) (-90) (uscale 0.2 (text "You won!")) <> clickable extentStart "Menu (M)" <> clickable extentNext "Restart"
+  back im <> translate (-290) (-90) (uscale 0.2 (text "You won!")) <> clickable extentStart "Menu" <> clickable extentNext "Restart"
 drawGame (World _ _ Lost _ _) im =
-  back im <> translate (-290) (-90) (uscale 0.1 (text "Try again, you Lost!")) <> clickable extentStart "Menu (M)" <> clickable extentNext "Restart"
+  back im <> translate (-290) (-90) (uscale 0.1 (text "Try again, you Lost!")) <> clickable extentStart "Menu" <> clickable extentNext "Restart"
 drawGame _ _ = blank
 
 board :: Level -> Images -> Picture
