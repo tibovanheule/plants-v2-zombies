@@ -10,10 +10,11 @@ There are a few extra options for debugging purposes.
  - events = Prints all gloss events on std out. This is particulary handy for mouse events.
  - exit = used in conjunction with debug, after parser parses the files exit (don't start gui)
 
-## Imporvements
-Reactive banana together with gloss is a great start, but the gamelogic could also fire some events. This would be better reactive programming.
+## Improvements
+- Reactive banana together with gloss is a great start, but the gamelogic could also fire some events. This would be better reactive programming.
+- better alternatives when initial pathfinding fails
 
-## gebruikte bronnen
+## Used references
 This is a small bibliography of documentation, articles and tutorials whoinfluenced the project.
 ### reactive banana + Gloss
 - http://gelisam.blogspot.com/2014/07/reactive-banana-anti-tutorial.html
@@ -24,12 +25,16 @@ This is a small bibliography of documentation, articles and tutorials whoinfluen
 - http://hackage.haskell.org/package/reactive-banana-1.0.0.0/docs/Reactive-Banana-Combinators.html
 - http://hackage.haskell.org/package/reactive-banana-1.0.0.0/changelog
 ### Clickable (Extents, simple buttons ...)
-http://hackage.haskell.org/package/gloss-algorithms-1.9.2.1/docs/Graphics-Gloss-Data-Extent.html
+- http://hackage.haskell.org/package/gloss-algorithms-1.9.2.1/docs/Graphics-Gloss-Data-Extent.html
 ### Exit (For proper exits)
-https://hackage.haskell.org/package/base-4.14.0.0/docs/System-Exit.html
+- https://hackage.haskell.org/package/base-4.14.0.0/docs/System-Exit.html
 ### Haskell source code formatter (style formatter)
-https://github.com/lspitzner/brittany
+ - https://github.com/lspitzner/brittany
 ### Screnshot save
-https://hackage.haskell.org/package/gloss-export-0.1.0.2/docs/Graphics-Gloss-Export-PNG.html
+- https://hackage.haskell.org/package/gloss-export-0.1.0.2/docs/Graphics-Gloss-Export-PNG.html
 ### count functie in parser (x aantal keer)
-https://hackage.haskell.org/package/parsers-0.12.10/docs/src/Text.Parser.Combinators.html#count
+- https://hackage.haskell.org/package/parsers-0.12.10/docs/src/Text.Parser.Combinators.html#count
+### A-star
+- https://www.geeksforgeeks.org/a-search-algorithm/
+- https://hackage.haskell.org/package/unordered-containers-0.2.12.0/docs/Data-HashSet.html
+- https://hackage.haskell.org/package/unordered-containers-0.2.12.0/docs/Data-HashMap-Strict.html

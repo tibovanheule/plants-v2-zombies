@@ -130,9 +130,10 @@ drawMenu (World _ _ _ levels currentlevel) im =
  back im <> levelToPic <> clickable extentNext "Next level (N)"  <> clickable extentStart "Start level (S)"
  where
   levelToPic = levelToPictures $ levels !! currentlevel
+  totime t = show (fst $ quotRem ( round t) (60*60)) ++ ":" ++ show (snd $ quotRem ( round t) (60*60))
   levelToPictures (Level title difficulty _ _ _ phase _ _ _) = translate (-290) (-40) (uscale 0.1 (text title)) <>
    translate (-290) (-55) (uscale 0.1 (text ("diffculty: " ++ show difficulty) )) <>
-   translate (-290) (-70) (uscale 0.1 (text ("time: " ++ show (getEnd phase) )))
+   translate (-290) (-70) (uscale 0.1 (text ("time: " ++ totime ( getEnd phase) )))
 
 back :: Images -> Picture
 back = scale ((breedte * schaal)/577) ((hoogte * schaal + schaal)/385) . backgroundimage
