@@ -6,10 +6,12 @@ The documentation of this project can be found at https://tibovanheule.space/pla
 ### Options when starting with gui
 There are a few extra options for debugging purposes.
  - debug = Output of the parser will be printed on standard output. 
- - time = Displays the gloss time ticks  on std out.
+ - time = Displays the gloss time ticks on std out.
  - events = Prints all gloss events on std out. This is particulary handy for mouse events.
  - exit = used in conjunction with debug, after parser parses the files exit (don't start gui)
- 
+
+## Imporvements
+Reactive banana together with gloss is a great start, but the gamelogic could also fire some events. This would be better reactive programming.
 
 ## gebruikte bronnen
 This is a small bibliography of documentation, articles and tutorials whoinfluenced the project.
